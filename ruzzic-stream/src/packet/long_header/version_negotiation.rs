@@ -1,6 +1,3 @@
-use bitvec::prelude::*;
-use byteorder::{BigEndian, ByteOrder};
-
 use super::{ConnectionIDPair, HeaderForm, LongHeaderMeta, Version, Versions};
 
 #[derive(Debug, PartialEq)]
@@ -50,6 +47,8 @@ impl VersionNegotiationPacket {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bitvec::prelude::*;
+    use byteorder::{BigEndian, ByteOrder};
 
     #[test]
     fn version_negotiation_packet() {
