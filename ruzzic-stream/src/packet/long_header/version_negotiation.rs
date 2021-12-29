@@ -2,6 +2,7 @@ use super::{ConnectionIDPair, HeaderForm, LongHeaderMeta, Version, Versions};
 
 #[derive(Debug, PartialEq)]
 pub struct VersionNegotiationPacket {
+    pub header_form: HeaderForm,
     pub version: Version,
     pub connection_id_pair: ConnectionIDPair,
     pub supported_versions: Versions,
@@ -15,6 +16,7 @@ impl VersionNegotiationPacket {
             &buffer[LongHeaderMeta::SIZE + connection_id_pair.real_length()..],
         );
         Self {
+            header_form: meta.header_form(),
             version: meta.version,
             connection_id_pair,
             supported_versions,
@@ -37,6 +39,7 @@ impl VersionNegotiationPacket {
         supported_versions: Versions,
     ) -> Self {
         Self {
+            header_form: HeaderForm::Long,
             version,
             connection_id_pair,
             supported_versions,
@@ -93,6 +96,7 @@ mod tests {
 
         let version_negotiation_packet = VersionNegotiationPacket::read_bytes(&input);
         let expected = VersionNegotiationPacket {
+            header_form: HeaderForm::Long,
             version: Version(0x00),
             connection_id_pair: ConnectionIDPair {
                 destination_id: vec![0x01],
@@ -100,14 +104,6 @@ mod tests {
             },
             supported_versions: Versions(vec![Version(0x01), Version(0x02)]),
         };
-        assert_eq!(version_negotiation_packet.version, expected.version);
-        assert_eq!(
-            version_negotiation_packet.connection_id_pair,
-            expected.connection_id_pair
-        );
-        assert_eq!(
-            version_negotiation_packet.supported_versions,
-            expected.supported_versions
-        );
+        assert_eq!(version_negotiation_packet, expected);
     }
 }
