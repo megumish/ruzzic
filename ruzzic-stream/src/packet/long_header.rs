@@ -124,12 +124,12 @@ mod tests {
     #[test]
     fn connection_id_pairs() {
         let destination_id = [0x01];
-        let mut destination_id_length = vec![];
-        destination_id_length.write_u64::<BigEndian>(destination_id.len() as u64);
+        let mut destination_id_length = [0u8; 8];
+        BigEndian::write_u64(&mut destination_id_length, destination_id.len() as u64);
 
         let source_id = [0x02, 0x11];
-        let mut source_id_length = vec![];
-        source_id_length.write_u64::<BigEndian>(source_id.len() as u64);
+        let mut source_id_length = [0u8; 8];
+        BigEndian::write_u64(&mut source_id_length, source_id.len() as u64);
 
         let input = [
             &destination_id_length[..],
