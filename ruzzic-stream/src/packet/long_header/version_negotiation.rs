@@ -5,7 +5,7 @@ use super::{ConnectionIDPair, HeaderForm, LongHeaderMeta, Version, Versions};
 
 #[derive(Debug, PartialEq)]
 pub struct VersionNegotiationPacket {
-    pub meta: LongHeaderMeta,
+    pub version: Version,
     pub connection_id_pair: ConnectionIDPair,
     pub supported_versions: Versions,
 }
@@ -14,14 +14,24 @@ impl VersionNegotiationPacket {
     pub fn read_bytes(buffer: &[u8]) -> Self {
         let meta = LongHeaderMeta::read_bytes(&buffer[..LongHeaderMeta::SIZE]);
         let connection_id_pair = ConnectionIDPair::read_bytes(&buffer[LongHeaderMeta::SIZE..]);
-        let versions = Versions::read_bytes(
+        let supported_versions = Versions::read_bytes(
             &buffer[LongHeaderMeta::SIZE + connection_id_pair.real_length()..],
         );
         Self {
-            meta,
+            version: meta.version,
             connection_id_pair,
-            supported_versions: versions,
+            supported_versions,
         }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let meta = LongHeaderMeta::new_for_version_negotiation(self.version);
+        [
+            &meta.to_bytes()[..],
+            &self.connection_id_pair.to_bytes(),
+            &self.supported_versions.to_bytes(),
+        ]
+        .concat()
     }
 
     pub fn new(
@@ -29,9 +39,8 @@ impl VersionNegotiationPacket {
         connection_id_pair: ConnectionIDPair,
         supported_versions: Versions,
     ) -> Self {
-        let meta = LongHeaderMeta::new_for_version_negotiation(version);
         Self {
-            meta,
+            version,
             connection_id_pair,
             supported_versions,
         }
@@ -85,21 +94,14 @@ mod tests {
 
         let version_negotiation_packet = VersionNegotiationPacket::read_bytes(&input);
         let expected = VersionNegotiationPacket {
-            meta: LongHeaderMeta::new_for_version_negotiation(Version(0x00)),
+            version: Version(0x00),
             connection_id_pair: ConnectionIDPair {
                 destination_id: vec![0x01],
                 source_id: vec![0x02, 0x11],
             },
             supported_versions: Versions(vec![Version(0x01), Version(0x02)]),
         };
-        assert_eq!(
-            version_negotiation_packet.meta.header_form(),
-            HeaderForm::Long
-        );
-        assert_eq!(
-            version_negotiation_packet.meta.version,
-            expected.meta.version
-        );
+        assert_eq!(version_negotiation_packet.version, expected.version);
         assert_eq!(
             version_negotiation_packet.connection_id_pair,
             expected.connection_id_pair

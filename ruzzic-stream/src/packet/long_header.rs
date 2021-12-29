@@ -32,10 +32,17 @@ pub enum PacketType {
 }
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Version(u32);
 
-#[repr(transparent)]
+impl Version {
+    pub(self) fn to_bytes(&self) -> [u8; 4] {
+        let mut buf = [0u8; 4];
+        BigEndian::write_u32(&mut buf, self.0);
+        buf
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Versions(Vec<Version>);
 
@@ -85,6 +92,13 @@ impl<'a> LongHeaderMeta {
             version,
         }
     }
+
+    pub(self) fn to_bytes(&self) -> [u8; 5] {
+        [&[self.first_byte.load()], &self.version.to_bytes()[..]]
+            .concat()
+            .try_into()
+            .unwrap()
+    }
 }
 
 const CONNECTION_ID_LENGTH: usize = 8;
@@ -107,6 +121,17 @@ impl ConnectionIDPair {
         }
     }
 
+    pub(self) fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = vec![];
+        buf.write_u64::<BigEndian>(self.destination_id.len() as u64)
+            .unwrap();
+        buf.extend_from_slice(&self.destination_id);
+        buf.write_u64::<BigEndian>(self.source_id.len() as u64)
+            .unwrap();
+        buf.extend_from_slice(&self.source_id);
+        buf
+    }
+
     pub fn real_length(&self) -> usize {
         CONNECTION_ID_LENGTH * 2 + self.destination_id.len() + self.source_id.len()
     }
@@ -121,6 +146,14 @@ impl Versions {
         }
 
         Self(versions)
+    }
+
+    pub(self) fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = vec![];
+        for version in &self.0 {
+            buf.write_u32::<BigEndian>(version.0).unwrap();
+        }
+        buf
     }
 }
 
