@@ -3,11 +3,15 @@ use std::{io::Cursor, mem::transmute};
 use bitvec::prelude::*;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 
+pub mod version_negotiation;
+
+#[derive(Debug, PartialEq)]
 pub struct LongHeaderMeta {
     first_byte: BitArr!(for 8, in Msb0, u8),
     version: Version,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ConnectionIDPair {
     pub destination_id: Vec<u8>,
     pub source_id: Vec<u8>,
@@ -36,6 +40,22 @@ pub struct Version(u32);
 pub struct Versions(Vec<Version>);
 
 impl<'a> LongHeaderMeta {
+    const SIZE: usize = 1 + 4;
+
+    #[cfg(test)]
+    pub(self) fn new_for_version_negotiation() -> Self {
+        let first_byte = bitarr![Msb0, u8;
+            1, // Header Form
+            1, // Fixed Bit (but not used)
+            0, 0, // Packet Type (but not used)
+            0, 0, 0, 0 // Type-Specific Bits (but not used)
+        ];
+        Self {
+            first_byte,
+            version: Version(0),
+        }
+    }
+
     pub fn header_form(&self) -> HeaderForm {
         match self.first_byte[0] {
             true => HeaderForm::Long,
@@ -86,6 +106,10 @@ impl ConnectionIDPair {
                 [source_id_length_begin_offset + CONNECTION_ID_LENGTH..next_content_begin_offset]
                 .to_vec(),
         }
+    }
+
+    pub fn real_length(&self) -> usize {
+        CONNECTION_ID_LENGTH * 2 + self.destination_id.len() + self.source_id.len()
     }
 }
 
