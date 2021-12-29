@@ -1,7 +1,8 @@
-use std::{io::Cursor, mem::transmute};
-
 use bitvec::prelude::*;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
+use std::{io::Cursor, mem::transmute};
+
+use crate::FromReadBytes;
 
 pub mod version_negotiation;
 
@@ -83,7 +84,7 @@ impl<'a> LongHeaderMeta {
         }
     }
 
-    pub fn read_bytes(buffer: &'a [u8]) -> Self {
+    pub fn read_fixed_bytes(buffer: &'a [u8]) -> Self {
         let mut first_byte = bitarr![Msb0, u8; 0; 8];
         first_byte.store(buffer[0]);
         let version: Version = Version(BigEndian::read_u32(&buffer[1..5]));
@@ -101,23 +102,32 @@ impl<'a> LongHeaderMeta {
     }
 }
 
+impl FromReadBytes for LongHeaderMeta {
+    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        let mut buf = [0u8; 5];
+        input.read_exact(&mut buf)?;
+        Ok(Self::read_fixed_bytes(&buf))
+    }
+}
+
 const CONNECTION_ID_LENGTH: usize = 8;
 impl ConnectionIDPair {
-    pub fn read_bytes(buffer: &[u8]) -> Self {
-        let destination_id_length = BigEndian::read_u64(&buffer[..CONNECTION_ID_LENGTH]);
-        let source_id_length_begin_offset = CONNECTION_ID_LENGTH + destination_id_length as usize;
+    // TODO: do error handling
+    pub fn read_bytes(input: &mut impl std::io::Read) -> Self {
+        let destination_id_length = input.read_u8().unwrap();
+        let mut destination_id = vec![0u8; destination_id_length as usize];
+        input.read_exact(&mut destination_id).unwrap();
 
-        let source_id_length = BigEndian::read_u64(
-            &buffer[source_id_length_begin_offset
-                ..source_id_length_begin_offset + CONNECTION_ID_LENGTH],
-        );
-        let next_content_begin_offset =
-            source_id_length_begin_offset + CONNECTION_ID_LENGTH + source_id_length as usize;
+        let source_id_length = input.read_u8().unwrap();
+        let mut source_id = vec![0u8; source_id_length as usize];
+        input.read_exact(&mut source_id).unwrap();
+
         Self {
-            destination_id: buffer[CONNECTION_ID_LENGTH..source_id_length_begin_offset].to_vec(),
-            source_id: buffer
-                [source_id_length_begin_offset + CONNECTION_ID_LENGTH..next_content_begin_offset]
-                .to_vec(),
+            destination_id,
+            source_id,
         }
     }
 
@@ -137,9 +147,17 @@ impl ConnectionIDPair {
     }
 }
 
+impl FromReadBytes for ConnectionIDPair {
+    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        Ok(Self::read_bytes(input))
+    }
+}
+
 impl Versions {
-    pub fn read_bytes(buffer: &[u8]) -> Self {
-        let mut input = Cursor::new(buffer);
+    pub fn read_bytes(input: &mut impl std::io::Read) -> Self {
         let mut versions = Vec::new();
         while let Ok(raw_version) = input.read_u32::<BigEndian>() {
             versions.push(Version(raw_version))
@@ -157,6 +175,15 @@ impl Versions {
     }
 }
 
+impl FromReadBytes for Versions {
+    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        Ok(Self::read_bytes(input))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,7 +197,7 @@ mod tests {
             0, 0, 0, 0 // Type-Specific Bits
         ];
         let input = [first_byte.load(), 0x00, 0x00, 0x00, 0x01];
-        let long_header_meta = LongHeaderMeta::read_bytes(&input);
+        let long_header_meta = LongHeaderMeta::read_fixed_bytes(&input);
         assert_eq!(long_header_meta.header_form(), HeaderForm::Long);
         assert!(long_header_meta.is_valid());
         assert_eq!(long_header_meta.long_packet_type(), PacketType::Initial);
@@ -180,39 +207,41 @@ mod tests {
     #[test]
     fn connection_id_pairs() {
         let destination_id = [0x01];
-        let mut destination_id_length = [0u8; 8];
-        BigEndian::write_u64(&mut destination_id_length, destination_id.len() as u64);
+        let mut destination_id_length = [destination_id.len() as u8];
 
         let source_id = [0x02, 0x11];
-        let mut source_id_length = [0u8; 8];
-        BigEndian::write_u64(&mut source_id_length, source_id.len() as u64);
+        let mut source_id_length = [source_id.len() as u8];
 
-        let input = [
-            &destination_id_length[..],
-            &destination_id[..],
-            &source_id_length[..],
-            &source_id[..],
-        ]
-        .concat();
+        let mut input = Cursor::new(
+            [
+                &destination_id_length[..],
+                &destination_id[..],
+                &source_id_length[..],
+                &source_id[..],
+            ]
+            .concat(),
+        );
 
-        let connection_id_pair = ConnectionIDPair::read_bytes(&input);
+        let connection_id_pair = ConnectionIDPair::read_bytes(&mut input);
         assert_eq!(connection_id_pair.destination_id, &destination_id);
         assert_eq!(connection_id_pair.source_id, &source_id);
     }
 
     #[test]
     fn versions() {
-        let input = [0x01, 0x02]
-            .iter()
-            .map(|version| {
-                let mut buf = [0u8; 4];
-                BigEndian::write_u32(&mut buf, *version);
-                buf
-            })
-            .collect::<Vec<_>>()
-            .concat();
+        let mut input = Cursor::new(
+            [0x01, 0x02]
+                .iter()
+                .map(|version| {
+                    let mut buf = [0u8; 4];
+                    BigEndian::write_u32(&mut buf, *version);
+                    buf
+                })
+                .collect::<Vec<_>>()
+                .concat(),
+        );
 
-        let versions = Versions::read_bytes(&input);
+        let versions = Versions::read_bytes(&mut input);
         assert_eq!(versions, Versions(vec![Version(0x01), Version(0x02)]));
     }
 }

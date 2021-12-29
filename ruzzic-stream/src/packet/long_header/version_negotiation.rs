@@ -1,4 +1,7 @@
+use std::io::Cursor;
+
 use super::{ConnectionIDPair, HeaderForm, LongHeaderMeta, Version, Versions};
+use crate::{FromReadBytes, ReadBytesTo};
 
 #[derive(Debug, PartialEq)]
 pub struct VersionNegotiationPacket {
@@ -8,12 +11,12 @@ pub struct VersionNegotiationPacket {
 }
 
 impl VersionNegotiationPacket {
+    // TODO: do error handling
     pub fn read_bytes(buffer: &[u8]) -> Self {
-        let meta = LongHeaderMeta::read_bytes(&buffer[..LongHeaderMeta::SIZE]);
-        let connection_id_pair = ConnectionIDPair::read_bytes(&buffer[LongHeaderMeta::SIZE..]);
-        let supported_versions = Versions::read_bytes(
-            &buffer[LongHeaderMeta::SIZE + connection_id_pair.real_length()..],
-        );
+        let mut cursor = Cursor::new(buffer);
+        let meta: LongHeaderMeta = cursor.read_bytes_to().unwrap();
+        let connection_id_pair = cursor.read_bytes_to().unwrap();
+        let supported_versions = cursor.read_bytes_to().unwrap();
         Self {
             version: meta.version,
             connection_id_pair,
@@ -62,12 +65,10 @@ mod tests {
             let version = [0x00, 0x00, 0x00, 0x00];
 
             let destination_id = [0x01];
-            let mut destination_id_length = [0u8; 8];
-            BigEndian::write_u64(&mut destination_id_length, destination_id.len() as u64);
+            let destination_id_length = [destination_id.len() as u8];
 
             let source_id = [0x02, 0x11];
-            let mut source_id_length = [0u8; 8];
-            BigEndian::write_u64(&mut source_id_length, source_id.len() as u64);
+            let source_id_length = [source_id.len() as u8];
 
             let versions = [0x01, 0x02]
                 .iter()
