@@ -7,7 +7,7 @@ use super::{ConnectionIDPair, HeaderForm, LongHeaderMeta, Version, Versions};
 pub struct VersionNegotiationPacket {
     pub meta: LongHeaderMeta,
     pub connection_id_pair: ConnectionIDPair,
-    pub versions: Versions,
+    pub supported_versions: Versions,
 }
 
 impl VersionNegotiationPacket {
@@ -20,7 +20,20 @@ impl VersionNegotiationPacket {
         Self {
             meta,
             connection_id_pair,
-            versions,
+            supported_versions: versions,
+        }
+    }
+
+    pub fn new(
+        version: Version,
+        connection_id_pair: ConnectionIDPair,
+        supported_versions: Versions,
+    ) -> Self {
+        let meta = LongHeaderMeta::new_for_version_negotiation(version);
+        Self {
+            meta,
+            connection_id_pair,
+            supported_versions,
         }
     }
 }
@@ -72,12 +85,12 @@ mod tests {
 
         let version_negotiation_packet = VersionNegotiationPacket::read_bytes(&input);
         let expected = VersionNegotiationPacket {
-            meta: LongHeaderMeta::new_for_version_negotiation(),
+            meta: LongHeaderMeta::new_for_version_negotiation(Version(0x00)),
             connection_id_pair: ConnectionIDPair {
                 destination_id: vec![0x01],
                 source_id: vec![0x02, 0x11],
             },
-            versions: Versions(vec![Version(0x01), Version(0x02)]),
+            supported_versions: Versions(vec![Version(0x01), Version(0x02)]),
         };
         assert_eq!(
             version_negotiation_packet.meta.header_form(),
@@ -91,6 +104,9 @@ mod tests {
             version_negotiation_packet.connection_id_pair,
             expected.connection_id_pair
         );
-        assert_eq!(version_negotiation_packet.versions, expected.versions);
+        assert_eq!(
+            version_negotiation_packet.supported_versions,
+            expected.supported_versions
+        );
     }
 }

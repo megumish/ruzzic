@@ -42,8 +42,7 @@ pub struct Versions(Vec<Version>);
 impl<'a> LongHeaderMeta {
     const SIZE: usize = 1 + 4;
 
-    #[cfg(test)]
-    pub(self) fn new_for_version_negotiation() -> Self {
+    pub(self) fn new_for_version_negotiation(version: Version) -> Self {
         let first_byte = bitarr![Msb0, u8;
             1, // Header Form
             1, // Fixed Bit (but not used)
@@ -52,7 +51,7 @@ impl<'a> LongHeaderMeta {
         ];
         Self {
             first_byte,
-            version: Version(0),
+            version: version,
         }
     }
 
