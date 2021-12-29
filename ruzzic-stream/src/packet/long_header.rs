@@ -1,8 +1,3 @@
-use std::{
-    intrinsics::transmute,
-    io::{Read, Seek},
-};
-
 use bitvec::prelude::*;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 
@@ -55,8 +50,7 @@ impl<'a> LongHeaderMeta {
     pub fn read_bytes(buffer: &'a [u8]) -> Self {
         let mut first_byte = bitarr![Msb0, u8; 0; 8];
         first_byte.store(buffer[0]);
-        let version: u32 =
-            unsafe { transmute::<_, &u32>(&buffer[1..5] as *const [u8] as *const [u8; 4]) }.to_le();
+        let version: u32 = BigEndian::read_u32(&buffer[1..5]);
         Self {
             first_byte,
             version,
@@ -94,12 +88,12 @@ mod tests {
             0, 0, // Packet Type
             0, 0, 0, 0 // Type-Specific Bits
         ];
-        let input = [first_byte.load(), 0x00, 0x00, 0x00, 0x00];
+        let input = [first_byte.load(), 0x00, 0x00, 0x00, 0x01];
         let long_header_meta = LongHeaderMeta::read_bytes(&input);
         assert_eq!(long_header_meta.header_form(), HeaderForm::Long);
         assert!(long_header_meta.is_valid());
         assert_eq!(long_header_meta.long_packet_type(), PacketType::Initial);
-        assert_eq!(long_header_meta.version, 0x00000000);
+        assert_eq!(long_header_meta.version, 0x00000001);
     }
 
     #[test]
