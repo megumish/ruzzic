@@ -1,9 +1,11 @@
+use std::{io::Cursor, mem::transmute};
+
 use bitvec::prelude::*;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 
 pub struct LongHeaderMeta {
     first_byte: BitArr!(for 8, in Msb0, u8),
-    version: u32,
+    version: Version,
 }
 
 pub struct ConnectionIDPair {
@@ -24,6 +26,14 @@ pub enum PacketType {
     Handshake,
     Retry,
 }
+
+#[repr(transparent)]
+#[derive(Debug, PartialEq)]
+pub struct Version(u32);
+
+#[repr(transparent)]
+#[derive(Debug, PartialEq)]
+pub struct Versions(Vec<Version>);
 
 impl<'a> LongHeaderMeta {
     pub fn header_form(&self) -> HeaderForm {
@@ -50,7 +60,7 @@ impl<'a> LongHeaderMeta {
     pub fn read_bytes(buffer: &'a [u8]) -> Self {
         let mut first_byte = bitarr![Msb0, u8; 0; 8];
         first_byte.store(buffer[0]);
-        let version: u32 = BigEndian::read_u32(&buffer[1..5]);
+        let version: Version = Version(BigEndian::read_u32(&buffer[1..5]));
         Self {
             first_byte,
             version,
@@ -76,6 +86,18 @@ impl ConnectionIDPair {
     }
 }
 
+impl Versions {
+    pub fn read_bytes(buffer: &[u8]) -> Self {
+        let mut input = Cursor::new(buffer);
+        let mut versions = Vec::new();
+        while let Ok(raw_version) = input.read_u32::<BigEndian>() {
+            versions.push(Version(raw_version))
+        }
+
+        Self(versions)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -93,7 +115,7 @@ mod tests {
         assert_eq!(long_header_meta.header_form(), HeaderForm::Long);
         assert!(long_header_meta.is_valid());
         assert_eq!(long_header_meta.long_packet_type(), PacketType::Initial);
-        assert_eq!(long_header_meta.version, 0x00000001);
+        assert_eq!(long_header_meta.version, Version(0x00000001));
     }
 
     #[test]
@@ -117,5 +139,21 @@ mod tests {
         let connection_id_pair = ConnectionIDPair::read_bytes(&input);
         assert_eq!(connection_id_pair.destination_id, &destination_id);
         assert_eq!(connection_id_pair.source_id, &source_id);
+    }
+
+    #[test]
+    fn versions() {
+        let input = [0x01, 0x02]
+            .iter()
+            .map(|version| {
+                let mut buf = [0u8; 4];
+                BigEndian::write_u32(&mut buf, *version);
+                buf
+            })
+            .collect::<Vec<_>>()
+            .concat();
+
+        let versions = Versions::read_bytes(&input);
+        assert_eq!(versions, Versions(vec![Version(0x01), Version(0x02)]));
     }
 }
