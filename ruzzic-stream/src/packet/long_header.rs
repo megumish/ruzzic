@@ -1,15 +1,19 @@
-use std::intrinsics::transmute;
+use std::{
+    intrinsics::transmute,
+    io::{Read, Seek},
+};
 
 use bitvec::prelude::*;
+use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 
 pub struct LongHeaderMeta {
     first_byte: BitArr!(for 8, in Msb0, u8),
     version: u32,
 }
 
-pub struct ConnectionIDPair<'a> {
-    pub destination_id: &'a [u8],
-    pub source_id: &'a [u8],
+pub struct ConnectionIDPair {
+    pub destination_id: Vec<u8>,
+    pub source_id: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -60,6 +64,24 @@ impl<'a> LongHeaderMeta {
     }
 }
 
+const CONNECTION_ID_LENGTH: usize = 8;
+impl ConnectionIDPair {
+    pub fn read_bytes(buffer: &[u8]) -> Self {
+        let destination_id_length = BigEndian::read_u64(&buffer[0..8]);
+        let source_id_length_begin_offset = CONNECTION_ID_LENGTH + destination_id_length as usize;
+
+        let source_id_length = BigEndian::read_u64(&buffer[0..8]);
+        let next_content_begin_offset =
+            source_id_length_begin_offset + CONNECTION_ID_LENGTH + source_id_length as usize;
+        Self {
+            destination_id: buffer[CONNECTION_ID_LENGTH..source_id_length_begin_offset].to_vec(),
+            source_id: buffer
+                [source_id_length_begin_offset + CONNECTION_ID_LENGTH..next_content_begin_offset]
+                .to_vec(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,5 +100,28 @@ mod tests {
         assert!(long_header_meta.is_valid());
         assert_eq!(long_header_meta.long_packet_type(), PacketType::Initial);
         assert_eq!(long_header_meta.version, 0x00000000);
+    }
+
+    #[test]
+    fn connection_id_pairs() {
+        let destination_id = [0x01];
+        let mut destination_id_length = vec![];
+        destination_id_length.write_u64::<BigEndian>(destination_id.len() as u64);
+
+        let source_id = [0x02];
+        let mut source_id_length = vec![];
+        source_id_length.write_u64::<BigEndian>(source_id.len() as u64);
+
+        let input = [
+            &destination_id_length[..],
+            &destination_id[..],
+            &source_id_length[..],
+            &source_id[..],
+        ]
+        .concat();
+
+        let connection_id_pair = ConnectionIDPair::read_bytes(&input);
+        assert_eq!(connection_id_pair.destination_id, &destination_id);
+        assert_eq!(connection_id_pair.source_id, &source_id);
     }
 }
