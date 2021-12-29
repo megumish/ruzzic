@@ -71,10 +71,13 @@ impl<'a> LongHeaderMeta {
 const CONNECTION_ID_LENGTH: usize = 8;
 impl ConnectionIDPair {
     pub fn read_bytes(buffer: &[u8]) -> Self {
-        let destination_id_length = BigEndian::read_u64(&buffer[0..8]);
+        let destination_id_length = BigEndian::read_u64(&buffer[..CONNECTION_ID_LENGTH]);
         let source_id_length_begin_offset = CONNECTION_ID_LENGTH + destination_id_length as usize;
 
-        let source_id_length = BigEndian::read_u64(&buffer[0..8]);
+        let source_id_length = BigEndian::read_u64(
+            &buffer[source_id_length_begin_offset
+                ..source_id_length_begin_offset + CONNECTION_ID_LENGTH],
+        );
         let next_content_begin_offset =
             source_id_length_begin_offset + CONNECTION_ID_LENGTH + source_id_length as usize;
         Self {
@@ -124,7 +127,7 @@ mod tests {
         let mut destination_id_length = vec![];
         destination_id_length.write_u64::<BigEndian>(destination_id.len() as u64);
 
-        let source_id = [0x02];
+        let source_id = [0x02, 0x11];
         let mut source_id_length = vec![];
         source_id_length.write_u64::<BigEndian>(source_id.len() as u64);
 
