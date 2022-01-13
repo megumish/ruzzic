@@ -4,6 +4,7 @@ mod ack;
 mod padding;
 mod ping;
 mod reset_stream;
+mod stop_sending;
 
 #[derive(Debug, PartialEq)]
 enum Frame {
@@ -11,6 +12,7 @@ enum Frame {
     Ping,
     Ack(ack::Body),
     ResetStream(reset_stream::Body),
+    StopSending(stop_sending::Body),
     Extension(u64),
 }
 
@@ -31,7 +33,11 @@ impl FromReadBytes for Frame {
                 let body = input.read_bytes_to()?;
                 Frame::ResetStream(body)
             }
-            x => Frame::Extension(frame_type),
+            0x05 => {
+                let body = input.read_bytes_to()?;
+                Frame::StopSending(body)
+            }
+            _ => Frame::Extension(frame_type),
         })
     }
 }
