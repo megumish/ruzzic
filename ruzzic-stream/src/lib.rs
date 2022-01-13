@@ -8,6 +8,7 @@ use std::{io::Cursor, mem::size_of, slice::from_raw_parts};
 
 mod frame;
 mod packet;
+mod stream;
 
 // https://www.rfc-editor.org/rfc/rfc9000.html#name-variable-length-integer-enc
 #[derive(Debug, Into, From, PartialEq)]
@@ -148,3 +149,6 @@ trait FromReadBytes {
     where
         Self: Sized;
 }
+
+#[derive(Debug, PartialEq)]
+pub struct ApplicationProtocolErrorCode(pub(crate) u64);

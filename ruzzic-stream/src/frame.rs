@@ -3,12 +3,14 @@ use crate::{read_varint, FromReadBytes, ReadBytesTo};
 mod ack;
 mod padding;
 mod ping;
+mod reset_stream;
 
 #[derive(Debug, PartialEq)]
 enum Frame {
     Padding,
     Ping,
     Ack(ack::Body),
+    ResetStream(reset_stream::Body),
     Extension(u64),
 }
 
@@ -24,6 +26,10 @@ impl FromReadBytes for Frame {
             0x02 | 0x03 => {
                 let body = ack::Body::read_bytes(input, frame_type)?;
                 Frame::Ack(body)
+            }
+            0x04 => {
+                let body = input.read_bytes_to()?;
+                Frame::ResetStream(body)
             }
             x => Frame::Extension(frame_type),
         })
