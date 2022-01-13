@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor; 
-    use crate::{ReadBytesTo, frame::Frame};
+    use crate::{frame::Frame, ReadBytesTo};
+    use std::io::Cursor;
 
     #[test]
     fn padding_frame() {
@@ -10,6 +10,5 @@ mod tests {
         let actual: Frame = input.read_bytes_to().unwrap();
         let expect = Frame::Padding;
         assert_eq!(actual, expect);
-
     }
 }

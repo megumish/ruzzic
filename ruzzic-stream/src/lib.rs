@@ -6,11 +6,11 @@ use byteorder::{BigEndian, ByteOrder, NativeEndian, ReadBytesExt, WriteBytesExt}
 use derive_more::{From, Into};
 use std::{io::Cursor, mem::size_of, slice::from_raw_parts};
 
-mod packet;
 mod frame;
+mod packet;
 
 // https://www.rfc-editor.org/rfc/rfc9000.html#name-variable-length-integer-enc
-#[derive(Into, From)]
+#[derive(Debug, Into, From, PartialEq)]
 struct VarInt(u64);
 
 fn read_varint(input: &mut impl std::io::Read) -> Result<VarInt, std::io::Error> {

@@ -6,11 +6,14 @@ mod long_header;
 pub trait Packet {}
 
 #[derive(Debug, PartialEq)]
-pub struct PacketNumber(u32);
+pub struct PacketNumber(pub(crate) u32);
 
 impl PacketNumber {
     // TODO: check integer casting
-    fn read_bytes_to(input: &mut impl std::io::Read, length: u16) -> Result<Self, std::io::Error> {
+    pub fn read_bytes_to(
+        input: &mut impl std::io::Read,
+        length: u16,
+    ) -> Result<Self, std::io::Error> {
         let mut buf = vec![0u8; length as usize];
         input.read_exact(&mut buf)?;
         Ok(PacketNumber(
