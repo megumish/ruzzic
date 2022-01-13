@@ -4,6 +4,7 @@ use std::{io::Cursor, mem::transmute};
 
 use crate::FromReadBytes;
 
+pub mod initial;
 pub mod version_negotiation;
 
 #[derive(Debug, PartialEq)]
@@ -99,6 +100,12 @@ impl<'a> LongHeaderMeta {
             .concat()
             .try_into()
             .unwrap()
+    }
+}
+
+impl initial::HasPacketNumberLength for LongHeaderMeta {
+    fn packet_number_length(&self) -> u16 {
+        self.first_byte[6..8].load_be::<u16>() + 1
     }
 }
 
