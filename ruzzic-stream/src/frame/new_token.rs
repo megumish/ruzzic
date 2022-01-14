@@ -2,6 +2,8 @@ use crate::{read_varint, FromReadBytes, Token};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
+    // The token MUST NOT be empty
+    // TODO: so implment error handling
     token: Token,
 }
 
