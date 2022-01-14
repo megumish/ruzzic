@@ -6,6 +6,7 @@ mod ack;
 mod crypto;
 mod max_data;
 mod max_stream_data;
+mod max_streams;
 mod new_token;
 mod padding;
 mod ping;
@@ -25,6 +26,7 @@ enum Frame {
     Stream(stream::Body),
     MaxData(max_data::Body),
     MaxStreamData(max_stream_data::Body),
+    MaxStreams(max_streams::Body),
     Extension(u64),
 }
 
@@ -70,6 +72,10 @@ impl FromReadBytes for Frame {
             0x11 => {
                 let body = input.read_bytes_to()?;
                 Frame::MaxStreamData(body)
+            }
+            0x12 | 0x13 => {
+                let body = max_streams::Body::read_bytes_to(input, frame_type)?;
+                Frame::MaxStreams(body)
             }
             _ => Frame::Extension(frame_type),
         })
