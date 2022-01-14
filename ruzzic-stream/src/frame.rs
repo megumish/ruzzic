@@ -2,6 +2,7 @@ use crate::{read_varint, FromReadBytes, ReadBytesTo};
 
 mod ack;
 mod crypto;
+mod new_token;
 mod padding;
 mod ping;
 mod reset_stream;
@@ -15,6 +16,7 @@ enum Frame {
     ResetStream(reset_stream::Body),
     StopSending(stop_sending::Body),
     Crypto(crypto::Body),
+    NewToken(new_token::Body),
     Extension(u64),
 }
 
@@ -42,6 +44,10 @@ impl FromReadBytes for Frame {
             0x06 => {
                 let body = input.read_bytes_to()?;
                 Frame::Crypto(body)
+            }
+            0x07 => {
+                let body = input.read_bytes_to()?;
+                Frame::NewToken(body)
             }
             _ => Frame::Extension(frame_type),
         })
