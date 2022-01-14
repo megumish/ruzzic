@@ -1,4 +1,4 @@
-use crate::{stream::StreamID, ApplicationProtocolErrorCode, FromReadBytes, read_varint};
+use crate::{read_varint, stream::StreamID, ApplicationProtocolErrorCode, FromReadBytes};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -9,7 +9,8 @@ pub struct Body {
 impl FromReadBytes for Body {
     fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         let stream_id = read_varint(input)?;
         let error_code = read_varint(input)?;
         Ok(Self {

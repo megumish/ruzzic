@@ -1,6 +1,7 @@
 use crate::{read_varint, FromReadBytes, ReadBytesTo};
 
 mod ack;
+mod crypto;
 mod padding;
 mod ping;
 mod reset_stream;
@@ -13,6 +14,7 @@ enum Frame {
     Ack(ack::Body),
     ResetStream(reset_stream::Body),
     StopSending(stop_sending::Body),
+    Crypto(crypto::Body),
     Extension(u64),
 }
 
@@ -36,6 +38,10 @@ impl FromReadBytes for Frame {
             0x05 => {
                 let body = input.read_bytes_to()?;
                 Frame::StopSending(body)
+            }
+            0x06 => {
+                let body = input.read_bytes_to()?;
+                Frame::Crypto(body)
             }
             _ => Frame::Extension(frame_type),
         })
