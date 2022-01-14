@@ -15,6 +15,7 @@ mod reset_stream;
 mod stop_sending;
 mod stream;
 mod stream_data_blocked;
+mod streams_blocked;
 
 #[derive(Debug, PartialEq)]
 enum Frame {
@@ -31,6 +32,7 @@ enum Frame {
     MaxStreams(max_streams::Body),
     DataBlocked(data_blocked::Body),
     StreamDataBlocked(stream_data_blocked::Body),
+    StreamsBlocked(streams_blocked::Body),
     Extension(u64),
 }
 
@@ -58,6 +60,9 @@ impl FromReadBytes for Frame {
             0x12 | 0x13 => Frame::MaxStreams(max_streams::Body::read_bytes_to(input, frame_type)?),
             0x14 => Frame::DataBlocked(input.read_bytes_to()?),
             0x15 => Frame::StreamDataBlocked(input.read_bytes_to()?),
+            0x16 | 0x17 => {
+                Frame::StreamsBlocked(streams_blocked::Body::read_bytes_to(input, frame_type)?)
+            }
             _ => Frame::Extension(frame_type),
         })
     }
