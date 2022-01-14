@@ -4,6 +4,7 @@ use crate::{read_varint, FromReadBytes, ReadBytesTo};
 
 mod ack;
 mod crypto;
+mod max_data;
 mod new_token;
 mod padding;
 mod ping;
@@ -21,6 +22,7 @@ enum Frame {
     Crypto(crypto::Body),
     NewToken(new_token::Body),
     Stream(stream::Body),
+    MaxData(max_data::Body),
     Extension(u64),
 }
 
@@ -58,6 +60,10 @@ impl FromReadBytes for Frame {
                 flags.store(x);
                 let body = stream::Body::read_bytes_to(input, &flags[5..])?;
                 Frame::Stream(body)
+            }
+            0x10 => {
+                let body = input.read_bytes_to()?;
+                Frame::MaxData(body)
             }
             _ => Frame::Extension(frame_type),
         })
