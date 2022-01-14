@@ -1,3 +1,5 @@
+use bitvec::prelude::*;
+
 use crate::{read_varint, FromReadBytes, ReadBytesTo};
 
 mod ack;
@@ -7,6 +9,7 @@ mod padding;
 mod ping;
 mod reset_stream;
 mod stop_sending;
+mod stream;
 
 #[derive(Debug, PartialEq)]
 enum Frame {
@@ -17,6 +20,7 @@ enum Frame {
     StopSending(stop_sending::Body),
     Crypto(crypto::Body),
     NewToken(new_token::Body),
+    Stream(stream::Body),
     Extension(u64),
 }
 
@@ -48,6 +52,12 @@ impl FromReadBytes for Frame {
             0x07 => {
                 let body = input.read_bytes_to()?;
                 Frame::NewToken(body)
+            }
+            x if (0x08..0x0fu64).contains(&x) => {
+                let mut flags = bitvec![Msb0, u8; 1];
+                flags.store(x);
+                let body = stream::Body::read_bytes_to(input, &flags[5..])?;
+                Frame::Stream(body)
             }
             _ => Frame::Extension(frame_type),
         })
