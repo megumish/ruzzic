@@ -14,6 +14,7 @@ mod ping;
 mod reset_stream;
 mod stop_sending;
 mod stream;
+mod stream_data_blocked;
 
 #[derive(Debug, PartialEq)]
 enum Frame {
@@ -29,6 +30,7 @@ enum Frame {
     MaxStreamData(max_stream_data::Body),
     MaxStreams(max_streams::Body),
     DataBlocked(data_blocked::Body),
+    StreamDataBlocked(stream_data_blocked::Body),
     Extension(u64),
 }
 
@@ -41,48 +43,21 @@ impl FromReadBytes for Frame {
         Ok(match frame_type {
             0x00 => Frame::Padding,
             0x01 => Frame::Ping,
-            0x02 | 0x03 => {
-                let body = ack::Body::read_bytes(input, frame_type)?;
-                Frame::Ack(body)
-            }
-            0x04 => {
-                let body = input.read_bytes_to()?;
-                Frame::ResetStream(body)
-            }
-            0x05 => {
-                let body = input.read_bytes_to()?;
-                Frame::StopSending(body)
-            }
-            0x06 => {
-                let body = input.read_bytes_to()?;
-                Frame::Crypto(body)
-            }
-            0x07 => {
-                let body = input.read_bytes_to()?;
-                Frame::NewToken(body)
-            }
+            0x02 | 0x03 => Frame::Ack(ack::Body::read_bytes(input, frame_type)?),
+            0x04 => Frame::ResetStream(input.read_bytes_to()?),
+            0x05 => Frame::StopSending(input.read_bytes_to()?),
+            0x06 => Frame::Crypto(input.read_bytes_to()?),
+            0x07 => Frame::NewToken(input.read_bytes_to()?),
             x if (0x08..0x0f).contains(&x) => {
                 let mut flags = bitvec![Msb0, u8; 1];
                 flags.store(x);
-                let body = stream::Body::read_bytes_to(input, &flags[5..])?;
-                Frame::Stream(body)
+                Frame::Stream(stream::Body::read_bytes_to(input, &flags[5..])?)
             }
-            0x10 => {
-                let body = input.read_bytes_to()?;
-                Frame::MaxData(body)
-            }
-            0x11 => {
-                let body = input.read_bytes_to()?;
-                Frame::MaxStreamData(body)
-            }
-            0x12 | 0x13 => {
-                let body = max_streams::Body::read_bytes_to(input, frame_type)?;
-                Frame::MaxStreams(body)
-            }
-            0x14 => {
-                let body = input.read_bytes_to()?;
-                Frame::DataBlocked(body)
-            }
+            0x10 => Frame::MaxData(input.read_bytes_to()?),
+            0x11 => Frame::MaxStreamData(input.read_bytes_to()?),
+            0x12 | 0x13 => Frame::MaxStreams(max_streams::Body::read_bytes_to(input, frame_type)?),
+            0x14 => Frame::DataBlocked(input.read_bytes_to()?),
+            0x15 => Frame::StreamDataBlocked(input.read_bytes_to()?),
             _ => Frame::Extension(frame_type),
         })
     }
