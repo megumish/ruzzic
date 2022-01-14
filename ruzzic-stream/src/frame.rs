@@ -55,7 +55,7 @@ impl FromReadBytes for Frame {
                 let body = input.read_bytes_to()?;
                 Frame::NewToken(body)
             }
-            x if (0x08..0x0fu64).contains(&x) => {
+            x if (0x08..0x0f).contains(&x) => {
                 let mut flags = bitvec![Msb0, u8; 1];
                 flags.store(x);
                 let body = stream::Body::read_bytes_to(input, &flags[5..])?;
