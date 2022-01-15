@@ -5,7 +5,7 @@ use crate::{
     Version,
 };
 
-use super::{long_header, PacketBodyType, PacketType};
+use super::{long_header, PacketBodyType};
 
 #[derive(Debug, PartialEq)]
 pub struct PacketMeta {
@@ -67,11 +67,11 @@ impl FirstByte {
     }
 
     fn get_type(&self) -> PacketBodyType {
-        // if self.is_long() {
-        PacketBodyType::Long
-        // } else {
-        //     PacketBodyType::Short
-        // }
+        if self.is_long() {
+            PacketBodyType::Long
+        } else {
+            PacketBodyType::Short
+        }
     }
 
     fn packet_number_length(&self) -> u16 {

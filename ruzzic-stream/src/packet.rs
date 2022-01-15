@@ -8,7 +8,7 @@ use crate::{
 use self::{long_header::LongHeader, packet_meta::PacketMeta};
 
 mod long_header;
-mod packet_meta;
+pub mod packet_meta;
 
 #[derive(Debug, PartialEq)]
 pub struct Packet {
@@ -35,6 +35,7 @@ pub enum PacketBody {
 #[derive(Debug, PartialEq)]
 pub enum PacketBodyType {
     Long,
+    Short,
 }
 
 impl FromReadBytesWith<&PacketMeta> for PacketBody {
@@ -47,6 +48,7 @@ impl FromReadBytesWith<&PacketMeta> for PacketBody {
     {
         match meta.get_type() {
             PacketBodyType::Long => Ok(PacketBody::Long(input.read_bytes_to_with(meta)?)),
+            PacketBodyType::Short => unimplemented!(),
         }
     }
 }

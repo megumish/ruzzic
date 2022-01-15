@@ -1,7 +1,5 @@
-use std::io::Cursor;
-
-use super::{ConnectionIDPair, HeaderForm, LongHeaderMeta, Version, Versions};
-use crate::{read_bytes_to::FromReadBytesWith, FromReadBytes, ReadBytesTo};
+use super::{ConnectionIDPair, Versions};
+use crate::{read_bytes_to::FromReadBytesWith, ReadBytesTo};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -24,9 +22,11 @@ impl FromReadBytesWith<()> for Body {
 }
 #[cfg(test)]
 mod tests {
+    use crate::{read_bytes_to::ReadBytesTo, Version};
+
     use super::*;
-    use crate::read_bytes_to::ReadBytesTo;
     use byteorder::{BigEndian, ByteOrder};
+    use std::io::Cursor;
 
     #[test]
     fn version_negotiation_packet() {

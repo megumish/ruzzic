@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate futures;
-
 use bitvec::macros::internal::funty::IsInteger;
 use byteorder::{BigEndian, ByteOrder, NativeEndian, NetworkEndian, ReadBytesExt, WriteBytesExt};
 use derive_more::{From, Into};
@@ -10,7 +7,7 @@ use self::read_bytes_to::FromReadBytesWith;
 
 mod connection;
 mod frame;
-mod packet;
+pub mod packet;
 mod read_bytes_to;
 mod stream;
 
@@ -35,6 +32,7 @@ fn read_varint(input: &mut impl std::io::Read) -> Result<VarInt, std::io::Error>
 }
 
 // TODO: support error handling
+#[allow(dead_code)]
 fn to_varint<T>(i: &T) -> VarInt {
     let i_slice = unsafe { from_raw_parts(i as *const _ as *const _, size_of::<T>()) };
     let (msb, i) = match size_of::<T>() {
@@ -51,6 +49,7 @@ fn to_varint<T>(i: &T) -> VarInt {
 }
 
 // TODO: implement error handling
+#[allow(dead_code)]
 fn u64_to_varint_exact_size(i: u64) -> VarInt {
     if i < (1 << 6) {
         to_varint(&(i as u8))
@@ -66,6 +65,7 @@ fn u64_to_varint_exact_size(i: u64) -> VarInt {
 }
 
 impl VarInt {
+    #[allow(dead_code)]
     fn byte_size(&self) -> usize {
         if self.0 - (0b00 << 6) < (1 << 6) {
             1
@@ -94,6 +94,7 @@ impl VarInt {
         }
     }
 
+    #[allow(dead_code)]
     fn to_bytes(&self) -> Vec<u8> {
         let mut buf = vec![0; self.byte_size()];
         BigEndian::write_uint(&mut buf, self.0, self.byte_size());
@@ -101,6 +102,7 @@ impl VarInt {
     }
 
     // TODO: support error handling
+    #[allow(dead_code)]
     fn write_varint(&self, output: &mut impl std::io::Write) -> Result<(), std::io::Error> {
         output.write_uint::<BigEndian>(self.0, self.byte_size())?;
         Ok(())
@@ -117,10 +119,6 @@ impl Token {
         let mut buf = vec![0; length.to_u64() as usize];
         input.read_exact(&mut buf).unwrap();
         Token(buf)
-    }
-
-    pub(self) fn to_bytes(&self) -> Vec<u8> {
-        unimplemented!()
     }
 }
 
@@ -159,10 +157,7 @@ pub struct ApplicationProtocolErrorCode(pub(crate) u64);
 pub struct Version(u32);
 
 impl FromReadBytesWith<()> for Version {
-    fn from_read_bytes_with<R: std::io::Read>(
-        input: &mut R,
-        with: (),
-    ) -> Result<Self, std::io::Error>
+    fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {
@@ -171,6 +166,7 @@ impl FromReadBytesWith<()> for Version {
 }
 
 impl Version {
+    #[allow(dead_code)]
     pub(self) fn to_bytes(&self) -> [u8; 4] {
         let mut buf = [0u8; 4];
         BigEndian::write_u32(&mut buf, self.0);

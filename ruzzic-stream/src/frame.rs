@@ -115,6 +115,7 @@ impl FromReadBytesWith<()> for Frame {
 }
 
 impl Frames {
+    #[allow(dead_code)]
     fn read_bytes_to_end<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
     where
         Self: Sized,
@@ -160,7 +161,6 @@ mod tests {
     use std::io::Cursor;
 
     use super::*;
-    use crate::ReadBytesTo;
 
     #[test]
     fn empty_frames() {
