@@ -9,6 +9,7 @@ use std::{io::Cursor, mem::size_of, slice::from_raw_parts};
 mod connection;
 mod frame;
 mod packet;
+mod read_bytes_to;
 mod stream;
 
 // https://www.rfc-editor.org/rfc/rfc9000.html#name-variable-length-integer-enc
