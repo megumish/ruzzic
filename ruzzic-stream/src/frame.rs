@@ -11,6 +11,7 @@ mod max_streams;
 mod new_connection_id;
 mod new_token;
 mod padding;
+mod path_challenge;
 mod ping;
 mod reset_stream;
 mod retire_connection_id;
