@@ -41,6 +41,15 @@ pub enum LongHeader {
     Initial(initial::Body),
 }
 
+impl LongHeader {
+    pub(super) fn payload(&self) -> &[u8] {
+        match self {
+            LongHeader::VersionNegotiation(b) => b.payload(),
+            LongHeader::Initial(b) => b.payload(),
+        }
+    }
+}
+
 impl FromReadBytesWith<&PacketMeta> for LongHeader {
     fn from_read_bytes_with<R: std::io::Read>(
         input: &mut R,

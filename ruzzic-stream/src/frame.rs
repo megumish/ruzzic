@@ -114,9 +114,8 @@ impl FromReadBytesWith<()> for Frame {
     }
 }
 
-impl Frames {
-    #[allow(dead_code)]
-    fn read_bytes_to_end<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+impl FromReadBytesWith<()> for Frames {
+    fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {
@@ -166,7 +165,7 @@ mod tests {
     fn empty_frames() {
         let buf = [];
         let mut input = Cursor::new(buf);
-        let frames = Frames::read_bytes_to_end(&mut input).unwrap();
+        let frames: Frames = input.read_bytes_to().unwrap();
         assert_eq!(frames, Frames(Vec::new()));
     }
 
@@ -180,7 +179,7 @@ mod tests {
             174, 98, 245, 73, 178, 5, 87, 111, 106, 0, 43, 0, 2, 3, 4,
         ];
         let mut input = Cursor::new(buf);
-        let frames = Frames::read_bytes_to_end(&mut input).unwrap();
+        let frames: Frames = input.read_bytes_to().unwrap();
         eprintln!("{frames:?}");
     }
 }

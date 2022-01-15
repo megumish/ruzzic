@@ -41,6 +41,12 @@ impl FromReadBytesWith<&PacketMeta> for Body {
     }
 }
 
+impl Body {
+    pub(super) fn payload(&self) -> &[u8] {
+        &self.packet_payload.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

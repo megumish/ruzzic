@@ -20,6 +20,13 @@ impl FromReadBytesWith<()> for Body {
         })
     }
 }
+
+impl Body {
+    pub(super) fn payload(&self) -> &[u8] {
+        &[]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{read_bytes_to::ReadBytesTo, Version};
