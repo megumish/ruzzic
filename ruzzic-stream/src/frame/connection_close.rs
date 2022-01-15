@@ -1,4 +1,4 @@
-use crate::{read_varint, VarInt};
+use crate::{read_bytes_to::FromReadBytesWith, read_varint, VarInt};
 
 use super::FrameType;
 
@@ -9,11 +9,14 @@ pub struct Body {
     reason_phrase: String,
 }
 
-impl Body {
-    pub fn read_bytes_to(
-        input: &mut impl std::io::Read,
+impl FromReadBytesWith<u64> for Body {
+    fn from_read_bytes_with<R: std::io::Read>(
+        input: &mut R,
         this_frame_type: u64,
-    ) -> Result<Self, std::io::Error> {
+    ) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
         let error_code = read_varint(input)?;
         let frame_type = if this_frame_type == 0x1c {
             Some(FrameType::from_u64(read_varint(input)?.to_u64()))
@@ -39,13 +42,15 @@ impl Body {
 mod tests {
     use std::io::Cursor;
 
+    use crate::read_bytes_to::ReadBytesToWith;
+
     use super::*;
 
     #[test]
     fn connection_close() {
         let buf = [0, 0, 1, 'a' as u8];
         let mut input = Cursor::new(buf);
-        let actual: Body = Body::read_bytes_to(&mut input, 0x1c).unwrap();
+        let actual: Body = input.read_bytes_to_with(0x1c).unwrap();
         let expected = Body {
             error_code: VarInt(0),
             frame_type: Some(FrameType::Padding),
@@ -59,7 +64,7 @@ mod tests {
     fn connection_close_without_frame_type() {
         let buf = [0, 1, 'a' as u8];
         let mut input = Cursor::new(buf);
-        let actual: Body = Body::read_bytes_to(&mut input, 0x1d).unwrap();
+        let actual: Body = input.read_bytes_to_with(0x1d).unwrap();
         let expected = Body {
             error_code: VarInt(0),
             frame_type: None,

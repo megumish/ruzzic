@@ -1,4 +1,4 @@
-use crate::{read_varint, stream::StreamDirection, VarInt};
+use crate::{read_bytes_to::FromReadBytesWith, read_varint, stream::StreamDirection, VarInt};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -6,9 +6,9 @@ pub struct Body {
     maximum_streams: VarInt,
 }
 
-impl Body {
-    pub fn read_bytes_to(
-        input: &mut impl std::io::Read,
+impl FromReadBytesWith<u64> for Body {
+    fn from_read_bytes_with<R: std::io::Read>(
+        input: &mut R,
         frame_type: u64,
     ) -> Result<Self, std::io::Error>
     where
@@ -35,11 +35,13 @@ mod tests {
 
     use super::*;
 
+    use crate::read_bytes_to::ReadBytesToWith;
+
     #[test]
     fn streams_blocked() {
         let buf = [0];
         let mut input = Cursor::new(buf);
-        let actual: Body = Body::read_bytes_to(&mut input, 0x16).unwrap();
+        let actual: Body = input.read_bytes_to_with(0x16).unwrap();
         let expected = Body {
             direction: StreamDirection::Bidirectional,
             maximum_streams: VarInt(0),

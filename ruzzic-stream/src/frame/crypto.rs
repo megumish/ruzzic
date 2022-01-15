@@ -1,4 +1,4 @@
-use crate::{read_varint, FromReadBytes, VarInt};
+use crate::{read_bytes_to::FromReadBytesWith, read_varint, VarInt};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -9,8 +9,8 @@ pub struct Body {
 #[derive(Debug, PartialEq)]
 pub struct CryptoData(Vec<u8>);
 
-impl FromReadBytes for Body {
-    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+impl FromReadBytesWith<()> for Body {
+    fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {
@@ -30,7 +30,7 @@ mod tests {
     use std::io::Cursor;
 
     use super::*;
-    use crate::ReadBytesTo;
+    use crate::read_bytes_to::ReadBytesTo;
 
     #[test]
     fn crypto() {

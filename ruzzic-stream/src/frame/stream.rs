@@ -1,6 +1,7 @@
 use bitvec::{prelude::*, slice::BitSlice};
 
 use crate::{
+    read_bytes_to::FromReadBytesWith,
     read_varint,
     stream::{StreamData, StreamID},
     VarInt,
@@ -14,10 +15,9 @@ pub struct Body {
     is_fin: bool,
 }
 
-impl Body {
-    // TODO: error handling when access flags
-    pub fn read_bytes_to<T: std::io::Read>(
-        input: &mut T,
+impl FromReadBytesWith<&BitSlice<Msb0, u8>> for Body {
+    fn from_read_bytes_with<R: std::io::Read>(
+        input: &mut R,
         flags: &BitSlice<Msb0, u8>,
     ) -> Result<Self, std::io::Error>
     where
@@ -55,6 +55,7 @@ mod tests {
 
     use super::Body;
     use crate::{
+        read_bytes_to::ReadBytesToWith,
         stream::{StreamData, StreamID},
         VarInt,
     };
@@ -69,7 +70,7 @@ mod tests {
             0, // Data
         ];
         let mut input = Cursor::new(buf);
-        let actual: Body = Body::read_bytes_to(&mut input, &flags[..]).unwrap();
+        let actual: Body = input.read_bytes_to_with(&flags[..]).unwrap();
         let expected = Body {
             stream_id: StreamID(0),
             offset: Some(VarInt(0)),
@@ -89,7 +90,7 @@ mod tests {
             0, // Data
         ];
         let mut input = Cursor::new(buf);
-        let actual: Body = Body::read_bytes_to(&mut input, &flags[5..]).unwrap();
+        let actual: Body = input.read_bytes_to_with(&flags[5..]).unwrap();
         let expected = Body {
             stream_id: StreamID(0),
             offset: None,

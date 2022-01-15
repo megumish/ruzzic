@@ -1,4 +1,4 @@
-use crate::{read_varint, stream::StreamID, FromReadBytes, VarInt};
+use crate::{read_bytes_to::FromReadBytesWith, read_varint, stream::StreamID, VarInt};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -6,8 +6,8 @@ pub struct Body {
     maximum_stream_data: VarInt,
 }
 
-impl FromReadBytes for Body {
-    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+impl FromReadBytesWith<()> for Body {
+    fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {
@@ -23,7 +23,7 @@ impl FromReadBytes for Body {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ReadBytesTo;
+    use crate::read_bytes_to::ReadBytesTo;
 
     use std::io::Cursor;
 

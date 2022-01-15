@@ -1,4 +1,4 @@
-use crate::{packet::PacketNumber, read_varint, VarInt};
+use crate::{packet::PacketNumber, read_bytes_to::FromReadBytesWith, read_varint, VarInt};
 use std::io::Read;
 
 #[derive(Debug, PartialEq)]
@@ -23,8 +23,11 @@ pub struct ECNCounts {
     ecn_ce_count: VarInt,
 }
 
-impl Body {
-    pub fn read_bytes(input: &mut impl Read, frame_type: u64) -> Result<Self, std::io::Error> {
+impl FromReadBytesWith<u64> for Body {
+    fn from_read_bytes_with<R: Read>(input: &mut R, frame_type: u64) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
         let largest_acknowledged = read_varint(input)?;
         let ack_delay = read_varint(input)?;
         let ack_ranges_length = read_varint(input)?;
@@ -57,14 +60,16 @@ impl Body {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::Cursor;
+
+    use super::*;
+    use crate::read_bytes_to::ReadBytesToWith;
 
     #[test]
     fn ack_frame_0x02() {
         let buf = [0, 0, 1, 0, 0];
         let mut input = Cursor::new(buf);
-        let actual = Body::read_bytes(&mut input, 0x02).unwrap();
+        let actual: Body = input.read_bytes_to_with(0x02).unwrap();
         let expect = Body {
             largest_acknowledged: PacketNumber(0x00),
             ack_delay: VarInt(0),
@@ -81,7 +86,7 @@ mod tests {
     fn ack_frame_0x03() {
         let buf = [0, 0, 1, 0, 0, 0, 0, 0];
         let mut input = Cursor::new(buf);
-        let actual = Body::read_bytes(&mut input, 0x03).unwrap();
+        let actual: Body = input.read_bytes_to_with(0x03).unwrap();
         let expect = Body {
             largest_acknowledged: PacketNumber(0x00),
             ack_delay: VarInt(0),

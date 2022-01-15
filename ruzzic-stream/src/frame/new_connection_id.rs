@@ -1,6 +1,6 @@
 use byteorder::{BigEndian, ReadBytesExt};
 
-use crate::{connection::ConnectionID, read_varint, FromReadBytes, VarInt};
+use crate::{connection::ConnectionID, read_bytes_to::FromReadBytesWith, read_varint, VarInt};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -10,8 +10,8 @@ pub struct Body {
     stateless_reset_token: u128,
 }
 
-impl FromReadBytes for Body {
-    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+impl FromReadBytesWith<()> for Body {
+    fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {
@@ -35,7 +35,7 @@ mod tests {
     use std::io::Cursor;
 
     use super::*;
-    use crate::ReadBytesTo;
+    use crate::read_bytes_to::ReadBytesTo;
 
     #[test]
     fn new_connection_id() {

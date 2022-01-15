@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use crate::{read_varint, stream::StreamDirection, VarInt};
+use crate::{read_bytes_to::FromReadBytesWith, read_varint, stream::StreamDirection, VarInt};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -8,8 +8,11 @@ pub struct Body {
     maximum_streams: VarInt,
 }
 
-impl Body {
-    pub fn read_bytes_to(input: &mut impl Read, frame_type: u64) -> Result<Self, std::io::Error> {
+impl FromReadBytesWith<u64> for Body {
+    fn from_read_bytes_with<R: Read>(input: &mut R, frame_type: u64) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
         let kind = if frame_type == 0x12 {
             StreamDirection::Bidirectional
         } else if frame_type == 0x13 {
@@ -24,9 +27,10 @@ impl Body {
         })
     }
 }
+
 #[cfg(test)]
 mod tests {
-    use crate::{stream::StreamDirection, VarInt};
+    use crate::{read_bytes_to::ReadBytesToWith, stream::StreamDirection, VarInt};
 
     use super::Body;
     use std::io::Cursor;
@@ -35,7 +39,7 @@ mod tests {
     fn max_streams() {
         let buf = [0];
         let mut input = Cursor::new(buf);
-        let actual: Body = Body::read_bytes_to(&mut input, 0x12).unwrap();
+        let actual: Body = input.read_bytes_to_with(0x12).unwrap();
         let expected = Body {
             kind: StreamDirection::Bidirectional,
             maximum_streams: VarInt(0),
