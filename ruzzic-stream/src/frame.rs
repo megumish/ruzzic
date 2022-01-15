@@ -12,6 +12,7 @@ mod new_connection_id;
 mod new_token;
 mod padding;
 mod path_challenge;
+mod path_response;
 mod ping;
 mod reset_stream;
 mod retire_connection_id;
@@ -39,6 +40,7 @@ enum Frame {
     NewConnectionID(new_connection_id::Body),
     RetireConnectionID(retire_connection_id::Body),
     PathChallenge(path_challenge::Body),
+    PathResponse(path_response::Body),
     Extension(u64),
 }
 
@@ -72,6 +74,7 @@ impl FromReadBytes for Frame {
             0x18 => Frame::NewConnectionID(input.read_bytes_to()?),
             0x19 => Frame::RetireConnectionID(input.read_bytes_to()?),
             0x1a => Frame::PathChallenge(input.read_bytes_to()?),
+            0x1b => Frame::PathResponse(input.read_bytes_to()?),
             _ => Frame::Extension(frame_type),
         })
     }
