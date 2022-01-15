@@ -1,8 +1,11 @@
 use byteorder::{BigEndian, ByteOrder};
 
-use crate::FromReadBytes;
+use crate::{
+    read_bytes_to::{FromReadBytesWith, ReadBytesToWith},
+    FromReadBytes,
+};
 
-use self::packet_meta::PacketMeta;
+use self::{long_header::LongHeader, packet_meta::PacketMeta};
 
 mod long_header;
 mod packet_meta;
@@ -10,6 +13,31 @@ mod packet_meta;
 #[derive(Debug, PartialEq)]
 pub struct Packet {
     meta: PacketMeta,
+    body: PacketBody,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum PacketBody {
+    Long(LongHeader),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum PacketBodyType {
+    Long,
+}
+
+impl FromReadBytesWith<PacketMeta> for PacketBody {
+    fn from_read_bytes_with<R: std::io::Read>(
+        input: &mut R,
+        meta: PacketMeta,
+    ) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        match meta.get_type() {
+            PacketBodyType::Long => Ok(PacketBody::Long(input.read_bytes_to_with(meta)?)),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]

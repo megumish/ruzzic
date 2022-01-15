@@ -2,7 +2,9 @@ use bitvec::prelude::*;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use std::{io::Cursor, mem::transmute};
 
-use crate::{FromReadBytes, Version};
+use crate::{read_bytes_to::FromReadBytesWith, FromReadBytes, Version};
+
+use super::packet_meta::PacketMeta;
 
 pub mod initial;
 pub mod version_negotiation;
@@ -39,6 +41,18 @@ pub struct Versions(Vec<Version>);
 
 #[derive(Debug, PartialEq)]
 pub struct LongHeader {}
+
+impl FromReadBytesWith<PacketMeta> for LongHeader {
+    fn from_read_bytes_with<R: std::io::Read>(
+        input: &mut R,
+        with: PacketMeta,
+    ) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        Ok(LongHeader {})
+    }
+}
 
 impl<'a> LongHeaderMeta {
     const SIZE: usize = 1 + 4;

@@ -5,7 +5,7 @@ use crate::{
     Version,
 };
 
-use super::PacketType;
+use super::{PacketBodyType, PacketType};
 
 #[derive(Debug, PartialEq)]
 pub struct PacketMeta {
@@ -64,5 +64,18 @@ impl FirstByte {
             3 => PacketType::Retry,
             _ => unreachable!("this must be 2bit value"),
         }
+    }
+
+    fn get_type(&self) -> PacketBodyType {
+        // if self.is_long() {
+        PacketBodyType::Long
+        // } else {
+        //     PacketBodyType::Short
+        // }
+    }
+}
+impl PacketMeta {
+    pub(crate) fn get_type(&self) -> PacketBodyType {
+        self.first_byte.get_type()
     }
 }
