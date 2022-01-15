@@ -153,3 +153,15 @@ trait FromReadBytes {
 
 #[derive(Debug, PartialEq)]
 pub struct ApplicationProtocolErrorCode(pub(crate) u64);
+
+#[repr(transparent)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Version(u32);
+
+impl Version {
+    pub(self) fn to_bytes(&self) -> [u8; 4] {
+        let mut buf = [0u8; 4];
+        BigEndian::write_u32(&mut buf, self.0);
+        buf
+    }
+}

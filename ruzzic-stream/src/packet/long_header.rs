@@ -2,7 +2,9 @@ use bitvec::prelude::*;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use std::{io::Cursor, mem::transmute};
 
-use crate::FromReadBytes;
+use crate::{FromReadBytes, Version};
+
+use super::HeaderFirstByte;
 
 pub mod initial;
 pub mod version_negotiation;
@@ -34,20 +36,14 @@ pub enum PacketType {
     Retry,
 }
 
-#[repr(transparent)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Version(u32);
-
-impl Version {
-    pub(self) fn to_bytes(&self) -> [u8; 4] {
-        let mut buf = [0u8; 4];
-        BigEndian::write_u32(&mut buf, self.0);
-        buf
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub struct Versions(Vec<Version>);
+
+#[derive(Debug, PartialEq)]
+pub struct LongHeader {
+    first_byte: HeaderFirstByte,
+    version: Version,
+}
 
 impl<'a> LongHeaderMeta {
     const SIZE: usize = 1 + 4;
