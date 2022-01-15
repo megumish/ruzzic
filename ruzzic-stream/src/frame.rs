@@ -23,6 +23,9 @@ mod stream_data_blocked;
 mod streams_blocked;
 
 #[derive(Debug, PartialEq)]
+pub struct Frames(Vec<Frame>);
+
+#[derive(Debug, PartialEq)]
 enum Frame {
     Padding,
     Ping,
@@ -112,6 +115,19 @@ impl FromReadBytes for Frame {
     }
 }
 
+impl Frames {
+    fn read_bytes_to_end<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        let mut frames = Vec::new();
+        while let Ok(frame) = input.read_bytes_to() {
+            frames.push(frame);
+        }
+        Ok(Frames(frames))
+    }
+}
+
 impl FrameType {
     fn from_u64(x: u64) -> Self {
         match x {
@@ -137,5 +153,35 @@ impl FrameType {
             0x1e => FrameType::HandshakeDone,
             _ => FrameType::Extension,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use super::*;
+    use crate::ReadBytesTo;
+
+    #[test]
+    fn empty_frames() {
+        let buf = [];
+        let mut input = Cursor::new(buf);
+        let frames = Frames::read_bytes_to_end(&mut input).unwrap();
+        assert_eq!(frames, Frames(Vec::new()));
+    }
+
+    #[test]
+    fn neqo_server_initial_packet_frames() {
+        let buf = [
+            2, 0, 0, 0, 0, 6, 0, 64, 90, 2, 0, 0, 86, 3, 3, 219, 98, 183, 101, 225, 209, 143, 84,
+            159, 231, 81, 246, 36, 1, 52, 248, 222, 203, 11, 68, 30, 155, 62, 173, 174, 167, 185,
+            90, 104, 45, 91, 10, 0, 19, 1, 0, 0, 46, 0, 51, 0, 36, 0, 29, 0, 32, 18, 139, 193, 217,
+            226, 59, 133, 108, 95, 30, 210, 203, 91, 196, 57, 52, 155, 5, 36, 50, 96, 211, 110,
+            174, 98, 245, 73, 178, 5, 87, 111, 106, 0, 43, 0, 2, 3, 4,
+        ];
+        let mut input = Cursor::new(buf);
+        let frames = Frames::read_bytes_to_end(&mut input).unwrap();
+        eprintln!("{frames:?}");
     }
 }
