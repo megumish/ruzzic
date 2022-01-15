@@ -13,6 +13,7 @@ pub struct LongHeaderMeta {
     version: Version,
 }
 
+// TODO: use ConnectionID struct instead of Vec
 #[derive(Debug, PartialEq)]
 pub struct ConnectionIDPair {
     pub destination_id: Vec<u8>,

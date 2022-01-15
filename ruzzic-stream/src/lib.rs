@@ -6,6 +6,7 @@ use byteorder::{BigEndian, ByteOrder, NativeEndian, ReadBytesExt, WriteBytesExt}
 use derive_more::{From, Into};
 use std::{io::Cursor, mem::size_of, slice::from_raw_parts};
 
+mod connection;
 mod frame;
 mod packet;
 mod stream;
