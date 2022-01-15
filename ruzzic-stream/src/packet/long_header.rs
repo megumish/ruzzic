@@ -4,8 +4,6 @@ use std::{io::Cursor, mem::transmute};
 
 use crate::{FromReadBytes, Version};
 
-use super::HeaderFirstByte;
-
 pub mod initial;
 pub mod version_negotiation;
 
@@ -40,10 +38,7 @@ pub enum PacketType {
 pub struct Versions(Vec<Version>);
 
 #[derive(Debug, PartialEq)]
-pub struct LongHeader {
-    first_byte: HeaderFirstByte,
-    version: Version,
-}
+pub struct LongHeader {}
 
 impl<'a> LongHeaderMeta {
     const SIZE: usize = 1 + 4;
