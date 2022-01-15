@@ -133,9 +133,6 @@ impl FromReadBytes for Token {
     }
 }
 
-#[cfg(test)]
-mod tests;
-
 trait ReadBytesTo: std::io::Read {
     fn read_bytes_to<T>(&mut self) -> Result<T, std::io::Error>
     where
