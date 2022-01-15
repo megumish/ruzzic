@@ -5,7 +5,7 @@ use crate::{
     Version,
 };
 
-use super::{PacketBodyType, PacketType};
+use super::{long_header, PacketBodyType, PacketType};
 
 #[derive(Debug, PartialEq)]
 pub struct PacketMeta {
@@ -56,12 +56,12 @@ impl FirstByte {
         self.0[1]
     }
 
-    pub fn long_packet_type(&self) -> PacketType {
+    pub fn long_packet_type(&self) -> long_header::PacketType {
         match self.0[2..4].load::<u8>() {
-            0 => PacketType::Initial,
-            1 => PacketType::ZeroRTT,
-            2 => PacketType::Handshake,
-            3 => PacketType::Retry,
+            0 => long_header::PacketType::Initial,
+            1 => long_header::PacketType::ZeroRTT,
+            2 => long_header::PacketType::Handshake,
+            3 => long_header::PacketType::Retry,
             _ => unreachable!("this must be 2bit value"),
         }
     }
@@ -77,5 +77,13 @@ impl FirstByte {
 impl PacketMeta {
     pub(crate) fn get_type(&self) -> PacketBodyType {
         self.first_byte.get_type()
+    }
+
+    pub(crate) fn long_packet_type(&self) -> long_header::PacketType {
+        self.first_byte.long_packet_type()
+    }
+
+    pub(crate) fn version(&self) -> Version {
+        self.version
     }
 }

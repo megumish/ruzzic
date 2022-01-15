@@ -1,69 +1,36 @@
 use std::io::Cursor;
 
 use super::{ConnectionIDPair, HeaderForm, LongHeaderMeta, Version, Versions};
-use crate::{FromReadBytes, ReadBytesTo};
+use crate::{read_bytes_to::FromReadBytesWith, FromReadBytes, ReadBytesTo};
 
 #[derive(Debug, PartialEq)]
-pub struct VersionNegotiationPacket {
-    pub version: Version,
+pub struct Body {
     pub connection_id_pair: ConnectionIDPair,
     pub supported_versions: Versions,
 }
 
-impl VersionNegotiationPacket {
-    // TODO: do error handling
-    pub fn read_bytes(buffer: &[u8]) -> Self {
-        let mut cursor = Cursor::new(buffer);
-        let meta: LongHeaderMeta = cursor.read_bytes_to().unwrap();
-        let connection_id_pair = cursor.read_bytes_to().unwrap();
-        let supported_versions = cursor.read_bytes_to().unwrap();
-        Self {
-            version: meta.version,
+impl FromReadBytesWith<()> for Body {
+    fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        let connection_id_pair = input.read_bytes_to()?;
+        let supported_versions = input.read_bytes_to()?;
+        Ok(Self {
             connection_id_pair,
             supported_versions,
-        }
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let meta = LongHeaderMeta::new_for_version_negotiation(self.version);
-        [
-            &meta.to_bytes()[..],
-            &self.connection_id_pair.to_bytes(),
-            &self.supported_versions.to_bytes(),
-        ]
-        .concat()
-    }
-
-    pub fn new(
-        version: Version,
-        connection_id_pair: ConnectionIDPair,
-        supported_versions: Versions,
-    ) -> Self {
-        Self {
-            version,
-            connection_id_pair,
-            supported_versions,
-        }
+        })
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitvec::prelude::*;
+    use crate::read_bytes_to::ReadBytesTo;
     use byteorder::{BigEndian, ByteOrder};
 
     #[test]
     fn version_negotiation_packet() {
-        let input = {
-            let first_byte = bitarr![Msb0, u8;
-                1, // Header Form
-                1, // Fixed Bit
-                0, 0, // Packet Type
-                0, 0, 0, 0 // Type-Specific Bits
-            ];
-            let version = [0x00, 0x00, 0x00, 0x00];
-
+        let buf = {
             let destination_id = [0x01];
             let destination_id_length = [destination_id.len() as u8];
 
@@ -81,8 +48,6 @@ mod tests {
                 .concat();
 
             [
-                &[first_byte.load()][..],
-                &version[..],
                 &destination_id_length[..],
                 &destination_id[..],
                 &source_id_length[..],
@@ -91,16 +56,16 @@ mod tests {
             ]
             .concat()
         };
+        let mut input = Cursor::new(buf);
 
-        let version_negotiation_packet = VersionNegotiationPacket::read_bytes(&input);
-        let expected = VersionNegotiationPacket {
-            version: Version(0x00),
+        let actual: Body = input.read_bytes_to().unwrap();
+        let expected = Body {
             connection_id_pair: ConnectionIDPair {
                 destination_id: vec![0x01],
                 source_id: vec![0x02, 0x11],
             },
             supported_versions: Versions(vec![Version(0x01), Version(0x02)]),
         };
-        assert_eq!(version_negotiation_packet, expected);
+        assert_eq!(actual, expected);
     }
 }

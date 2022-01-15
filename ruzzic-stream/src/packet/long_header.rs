@@ -2,7 +2,10 @@ use bitvec::prelude::*;
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use std::{io::Cursor, mem::transmute};
 
-use crate::{read_bytes_to::FromReadBytesWith, FromReadBytes, Version};
+use crate::{
+    read_bytes_to::{FromReadBytesWith, ReadBytesTo},
+    FromReadBytes, Version,
+};
 
 use super::packet_meta::PacketMeta;
 
@@ -40,17 +43,26 @@ pub enum PacketType {
 pub struct Versions(Vec<Version>);
 
 #[derive(Debug, PartialEq)]
-pub struct LongHeader {}
+pub enum LongHeader {
+    VersionNegotiation(version_negotiation::Body),
+    // Initial(initial::Body),
+}
 
 impl FromReadBytesWith<PacketMeta> for LongHeader {
     fn from_read_bytes_with<R: std::io::Read>(
         input: &mut R,
-        with: PacketMeta,
+        meta: PacketMeta,
     ) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {
-        Ok(LongHeader {})
+        if meta.version() == Version(0) {
+            return Ok(LongHeader::VersionNegotiation(input.read_bytes_to()?));
+        }
+        unimplemented!()
+        // Ok(match meta.long_packet_type() {
+        //     PacketType::Initial => LongHeader::Initial(input.read_bytes_to_with()),
+        // })
     }
 }
 
