@@ -3,7 +3,7 @@ use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 use std::{io::Cursor, mem::transmute};
 
 use crate::{
-    read_bytes_to::{FromReadBytesWith, ReadBytesTo},
+    read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWith},
     FromReadBytes, Version,
 };
 
@@ -45,13 +45,13 @@ pub struct Versions(Vec<Version>);
 #[derive(Debug, PartialEq)]
 pub enum LongHeader {
     VersionNegotiation(version_negotiation::Body),
-    // Initial(initial::Body),
+    Initial(initial::Body),
 }
 
-impl FromReadBytesWith<PacketMeta> for LongHeader {
+impl FromReadBytesWith<&PacketMeta> for LongHeader {
     fn from_read_bytes_with<R: std::io::Read>(
         input: &mut R,
-        meta: PacketMeta,
+        meta: &PacketMeta,
     ) -> Result<Self, std::io::Error>
     where
         Self: Sized,
@@ -59,10 +59,10 @@ impl FromReadBytesWith<PacketMeta> for LongHeader {
         if meta.version() == Version(0) {
             return Ok(LongHeader::VersionNegotiation(input.read_bytes_to()?));
         }
-        unimplemented!()
-        // Ok(match meta.long_packet_type() {
-        //     PacketType::Initial => LongHeader::Initial(input.read_bytes_to_with()),
-        // })
+        Ok(match meta.long_packet_type() {
+            PacketType::Initial => LongHeader::Initial(input.read_bytes_to_with(meta)?),
+            _ => unimplemented!(),
+        })
     }
 }
 
@@ -118,12 +118,6 @@ impl<'a> LongHeaderMeta {
             .concat()
             .try_into()
             .unwrap()
-    }
-}
-
-impl initial::HasPacketNumberLength for LongHeaderMeta {
-    fn packet_number_length(&self) -> u16 {
-        self.first_byte[6..8].load_be::<u16>() + 1
     }
 }
 

@@ -9,8 +9,8 @@ use super::{long_header, PacketBodyType, PacketType};
 
 #[derive(Debug, PartialEq)]
 pub struct PacketMeta {
-    first_byte: FirstByte,
-    version: Version,
+    pub(crate) first_byte: FirstByte,
+    pub(crate) version: Version,
 }
 
 impl FromReadBytesWith<()> for PacketMeta {
@@ -28,7 +28,7 @@ impl FromReadBytesWith<()> for PacketMeta {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct FirstByte(BitArr!(for 8, in Msb0, u8));
+pub struct FirstByte(pub(crate) BitArr!(for 8, in Msb0, u8));
 
 impl FromReadBytesWith<()> for FirstByte {
     fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
@@ -73,6 +73,10 @@ impl FirstByte {
         //     PacketBodyType::Short
         // }
     }
+
+    fn packet_number_length(&self) -> u16 {
+        self.0[6..8].load_be::<u16>() + 1
+    }
 }
 impl PacketMeta {
     pub(crate) fn get_type(&self) -> PacketBodyType {
@@ -85,5 +89,9 @@ impl PacketMeta {
 
     pub(crate) fn version(&self) -> Version {
         self.version
+    }
+
+    pub(crate) fn packet_number_length(&self) -> u16 {
+        self.first_byte.packet_number_length()
     }
 }
