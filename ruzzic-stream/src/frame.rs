@@ -11,6 +11,7 @@ mod max_streams;
 mod new_connection_id;
 mod new_token;
 mod padding;
+mod path_challenge;
 mod ping;
 mod reset_stream;
 mod retire_connection_id;
@@ -37,6 +38,7 @@ enum Frame {
     StreamsBlocked(streams_blocked::Body),
     NewConnectionID(new_connection_id::Body),
     RetireConnectionID(retire_connection_id::Body),
+    PathChallenge(path_challenge::Body),
     Extension(u64),
 }
 
@@ -69,6 +71,7 @@ impl FromReadBytes for Frame {
             }
             0x18 => Frame::NewConnectionID(input.read_bytes_to()?),
             0x19 => Frame::RetireConnectionID(input.read_bytes_to()?),
+            0x1a => Frame::PathChallenge(input.read_bytes_to()?),
             _ => Frame::Extension(frame_type),
         })
     }
