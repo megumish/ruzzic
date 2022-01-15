@@ -1,6 +1,9 @@
 use bitvec::prelude::*;
 
-use crate::{read_bytes_to::FromReadBytesWith, Version};
+use crate::{
+    read_bytes_to::{FromReadBytesWith, ReadBytesTo},
+    Version,
+};
 
 use super::PacketType;
 
@@ -10,14 +13,25 @@ pub struct PacketMeta {
     version: Version,
 }
 
+impl FromReadBytesWith<()> for PacketMeta {
+    fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        let first_byte = input.read_bytes_to()?;
+        let version = input.read_bytes_to()?;
+        Ok(Self {
+            first_byte,
+            version,
+        })
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct FirstByte(BitArr!(for 8, in Msb0, u8));
 
 impl FromReadBytesWith<()> for FirstByte {
-    fn from_read_bytes_with<R: std::io::Read>(
-        input: &mut R,
-        with: (),
-    ) -> Result<Self, std::io::Error>
+    fn from_read_bytes_with<R: std::io::Read>(input: &mut R, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {

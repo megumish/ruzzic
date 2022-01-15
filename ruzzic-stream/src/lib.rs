@@ -2,9 +2,11 @@
 extern crate futures;
 
 use bitvec::macros::internal::funty::IsInteger;
-use byteorder::{BigEndian, ByteOrder, NativeEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{BigEndian, ByteOrder, NativeEndian, NetworkEndian, ReadBytesExt, WriteBytesExt};
 use derive_more::{From, Into};
 use std::{io::Cursor, mem::size_of, slice::from_raw_parts};
+
+use self::read_bytes_to::FromReadBytesWith;
 
 mod connection;
 mod frame;
@@ -158,6 +160,18 @@ pub struct ApplicationProtocolErrorCode(pub(crate) u64);
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Version(u32);
+
+impl FromReadBytesWith<()> for Version {
+    fn from_read_bytes_with<R: std::io::Read>(
+        input: &mut R,
+        with: (),
+    ) -> Result<Self, std::io::Error>
+    where
+        Self: Sized,
+    {
+        Ok(Self(input.read_u32::<NetworkEndian>()?))
+    }
+}
 
 impl Version {
     pub(self) fn to_bytes(&self) -> [u8; 4] {

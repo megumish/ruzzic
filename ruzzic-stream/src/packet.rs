@@ -1,4 +1,3 @@
-use bitvec::prelude::*;
 use byteorder::{BigEndian, ByteOrder};
 
 use crate::FromReadBytes;
