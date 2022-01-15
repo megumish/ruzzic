@@ -13,6 +13,7 @@ mod new_token;
 mod padding;
 mod ping;
 mod reset_stream;
+mod retire_connection_id;
 mod stop_sending;
 mod stream;
 mod stream_data_blocked;
@@ -35,6 +36,7 @@ enum Frame {
     StreamDataBlocked(stream_data_blocked::Body),
     StreamsBlocked(streams_blocked::Body),
     NewConnectionID(new_connection_id::Body),
+    RetireConnectionID(retire_connection_id::Body),
     Extension(u64),
 }
 
@@ -66,6 +68,7 @@ impl FromReadBytes for Frame {
                 Frame::StreamsBlocked(streams_blocked::Body::read_bytes_to(input, frame_type)?)
             }
             0x18 => Frame::NewConnectionID(input.read_bytes_to()?),
+            0x19 => Frame::RetireConnectionID(input.read_bytes_to()?),
             _ => Frame::Extension(frame_type),
         })
     }
