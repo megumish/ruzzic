@@ -43,6 +43,7 @@ enum Frame {
     PathChallenge(path_challenge::Body),
     PathResponse(path_response::Body),
     ConnectionClose(connection_close::Body),
+    HandshakeDone,
     Extension(u64),
 }
 
@@ -67,6 +68,7 @@ pub enum FrameType {
     PathChallenge,
     PathResponse,
     ConnectionClose,
+    HandshakeDone,
     Extension,
 }
 
@@ -104,6 +106,7 @@ impl FromReadBytes for Frame {
             0x1c | 0x1d => {
                 Frame::ConnectionClose(connection_close::Body::read_bytes_to(input, frame_type)?)
             }
+            0x1e => Frame::HandshakeDone,
             _ => Frame::Extension(frame_type),
         })
     }
@@ -131,6 +134,7 @@ impl FrameType {
             0x1a => FrameType::PathChallenge,
             0x1b => FrameType::PathResponse,
             0x1c | 0x1d => FrameType::ConnectionClose,
+            0x1e => FrameType::HandshakeDone,
             _ => FrameType::Extension,
         }
     }
