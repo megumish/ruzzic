@@ -86,7 +86,7 @@ impl VarInt {
         } else if self.0 - (0b01 << 14) < (1 << 14) {
             self.0 - (0b01 << 14)
         } else if self.0 - (0b10 << 30) < (1 << 30) {
-            self.0 - (0b10 << 32)
+            self.0 - (0b10 << 30)
         } else if self.0 - (0b11 << 62) < (1 << 62) {
             self.0 - (0b11 << 62)
         } else {
