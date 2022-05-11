@@ -1,10 +1,10 @@
-use ruzzic::{QUICVersion, Ruzzic, RuzzicInit};
+use ruzzic::{QuicVersion, Ruzzic, RuzzicInit};
 use ruzzic_http3::{GetRequest, GetRequestInit, Http3App, ResponseMessage};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let ruzzic: Ruzzic<_> = RuzzicInit::<Http3App> {
-        version: QUICVersion::RFC9000,
+        support_versions: vec![QuicVersion::Rfc9000],
         ..Default::default()
     }
     .init()

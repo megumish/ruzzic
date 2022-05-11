@@ -1,16 +1,24 @@
+use server::RuzzicServer;
 use std::{default::Default, marker::PhantomData, net::SocketAddr};
 use tokio::net::UdpSocket;
+use version::QuicVersions;
+
+mod tokio_stream;
 
 pub mod error;
+pub mod server;
+pub mod simple_app;
 pub mod version;
 
-pub use self::{error::RuzzicError, error::RuzzicResult, version::QUICVersion};
+pub use self::{
+    error::RuzzicError, error::RuzzicResult, simple_app::SimpleApp, version::QuicVersion,
+};
 
 pub struct Ruzzic<App>
 where
     App: AppLayer,
 {
-    version: QUICVersion,
+    support_versions: QuicVersions,
     socket: UdpSocket,
     _phantom: PhantomData<App>,
 }
@@ -32,6 +40,10 @@ where
                 .map_err(App::Error::to_apps)?
         };
         Ok(message)
+    }
+
+    pub async fn server(self) -> RuzzicServer<App> {
+        RuzzicServer::new(self.support_versions, self.socket).await
     }
 }
 
@@ -55,8 +67,8 @@ pub trait AppError {
 }
 
 pub struct RuzzicInit<'a, App> {
-    pub version: QUICVersion,
-    pub local_addr: &'a str,
+    pub support_versions: QuicVersions,
+    pub self_addr: &'a str,
     pub _phantom: PhantomData<App>,
 }
 
@@ -65,9 +77,9 @@ where
     App: AppLayer,
 {
     pub async fn init(self) -> RuzzicResult<Ruzzic<App>> {
-        let socket = UdpSocket::bind(self.local_addr.parse::<SocketAddr>()?).await?;
+        let socket = UdpSocket::bind(self.self_addr.parse::<SocketAddr>()?).await?;
         Ok(Ruzzic {
-            version: self.version,
+            support_versions: self.support_versions,
             socket,
             _phantom: PhantomData,
         })
@@ -77,8 +89,8 @@ where
 impl<App> Default for RuzzicInit<'_, App> {
     fn default() -> Self {
         Self {
-            version: QUICVersion::RFC9000,
-            local_addr: "0.0.0.0:0",
+            support_versions: Vec::new(),
+            self_addr: "0.0.0.0:0",
             _phantom: PhantomData,
         }
     }
