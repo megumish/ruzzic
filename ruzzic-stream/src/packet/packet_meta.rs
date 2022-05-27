@@ -74,10 +74,15 @@ impl FirstByte {
         }
     }
 
-    fn packet_number_length(&self) -> u16 {
-        self.0[6..8].load_be::<u16>() + 1
+    fn packet_number_length(&self) -> u8 {
+        self.0[6..8].load_be::<u8>() + 1
+    }
+
+    fn raw_length(&self) -> usize {
+        1
     }
 }
+
 impl PacketMeta {
     pub(crate) fn get_type(&self) -> PacketBodyType {
         self.first_byte.get_type()
@@ -91,7 +96,11 @@ impl PacketMeta {
         self.version
     }
 
-    pub(crate) fn packet_number_length(&self) -> u16 {
+    pub(crate) fn packet_number_length(&self) -> u8 {
         self.first_byte.packet_number_length()
+    }
+
+    pub(crate) fn raw_length(&self) -> usize {
+        self.first_byte.raw_length() + self.version.raw_length()
     }
 }

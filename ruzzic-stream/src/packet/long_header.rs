@@ -48,6 +48,13 @@ impl LongHeader {
             LongHeader::Initial(b) => b.payload(),
         }
     }
+
+    pub(super) fn raw_length(&self) -> usize {
+        match self {
+            LongHeader::VersionNegotiation(b) => b.raw_length(),
+            LongHeader::Initial(b) => b.raw_length(),
+        }
+    }
 }
 
 impl FromReadBytesWith<&PacketMeta> for LongHeader {
@@ -83,6 +90,12 @@ impl ConnectionIDPair {
             destination_id,
             source_id,
         }
+    }
+
+    pub fn raw_length(&self) -> usize {
+        self.destination_id.len() + self.source_id.len() +
+        // destination_id_length + source_id_length
+        1 + 1
     }
 }
 

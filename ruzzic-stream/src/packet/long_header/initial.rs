@@ -2,7 +2,7 @@ use std::io::{Cursor, Read};
 
 use super::ConnectionIDPair;
 use crate::{
-    packet::{packet_meta::PacketMeta, PacketNumber, PacketPayload},
+    packet::{packet_meta::PacketMeta, PacketData, PacketNumber, PacketPayload},
     read_bytes_to::FromReadBytesWith,
     read_varint, ReadBytesTo, Token,
 };
@@ -44,6 +44,16 @@ impl FromReadBytesWith<&PacketMeta> for Body {
 impl Body {
     pub(super) fn payload(&self) -> &[u8] {
         &self.packet_payload.0
+    }
+
+    pub(super) fn raw_length(&self) -> usize {
+        self.connection_id_pair.raw_length()
+            + self.token.raw_length()
+            + PacketData {
+                packet_number: &self.packet_number,
+                packet_payload: &self.packet_payload,
+            }
+            .raw_length()
     }
 }
 

@@ -2,7 +2,7 @@ use byteorder::{BigEndian, ByteOrder};
 
 use crate::{
     read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWith},
-    FromReadBytes,
+    size_of_varint, FromReadBytes,
 };
 
 use self::{long_header::LongHeader, packet_meta::PacketMeta};
@@ -31,6 +31,10 @@ impl Packet {
     pub fn payload(&self) -> &[u8] {
         self.body.payload()
     }
+
+    pub fn raw_length(&self) -> usize {
+        self.meta.raw_length() + self.body.raw_length()
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -42,6 +46,13 @@ impl PacketBody {
     fn payload(&self) -> &[u8] {
         match self {
             PacketBody::Long(b) => b.payload(),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn raw_length(&self) -> usize {
+        match self {
+            PacketBody::Long(lh) => lh.raw_length(),
             _ => unimplemented!(),
         }
     }
@@ -83,7 +94,7 @@ impl PacketNumber {
     // TODO: check integer casting
     pub fn read_bytes_to(
         input: &mut impl std::io::Read,
-        length: u16,
+        length: u8,
     ) -> Result<Self, std::io::Error> {
         let mut buf = vec![0u8; length as usize];
         input.read_exact(&mut buf)?;
@@ -104,6 +115,29 @@ impl FromReadBytes for PacketPayload {
         let mut buf = Vec::new();
         input.read_to_end(&mut buf)?;
         Ok(PacketPayload(buf))
+    }
+}
+
+struct PacketData<'a> {
+    pub packet_number: &'a PacketNumber,
+    pub packet_payload: &'a PacketPayload,
+}
+
+impl<'a> PacketData<'a> {
+    fn raw_length(&self) -> usize {
+        let Self {
+            packet_number,
+            packet_payload,
+        } = self;
+        let packet_data_length = packet_payload.0.len()
+            + if packet_number.0 <= 0xff {
+                1
+            } else if packet_number.0 <= 0xffff {
+                2
+            } else {
+                4
+            };
+        size_of_varint(packet_data_length as u64) + packet_data_length
     }
 }
 

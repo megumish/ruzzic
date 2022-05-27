@@ -32,6 +32,10 @@ fn neqo_client_initial_packet() {
 
     let mut input = Cursor::new(NEQO_CLIENT_INITIAL_PACKET);
     let initial_packet: Packet = input.read_bytes_to().unwrap();
+    assert_eq!(
+        initial_packet.raw_length(),
+        NEQO_CLIENT_INITIAL_PACKET.len()
+    );
     eprintln!("{:#x?}", initial_packet);
 }
 
@@ -48,6 +52,10 @@ fn neqo_server_initial_packet() {
 
     let mut input = Cursor::new(NEQO_SERVER_INITIAL_PACKET);
     let initial_packet: Packet = input.read_bytes_to().unwrap();
+    assert_eq!(
+        initial_packet.raw_length(),
+        NEQO_SERVER_INITIAL_PACKET.len()
+    );
     eprintln!("{:#x?}", initial_packet);
 }
 

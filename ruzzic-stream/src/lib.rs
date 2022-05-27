@@ -64,6 +64,20 @@ fn u64_to_varint_exact_size(i: u64) -> VarInt {
     }
 }
 
+fn size_of_varint(i: u64) -> usize {
+    if i < (1 << 6) {
+        1
+    } else if i < (1 << 14) {
+        2
+    } else if i < (1 << 30) {
+        4
+    } else if i < (1 << 62) {
+        8
+    } else {
+        panic!("unsupported size");
+    }
+}
+
 impl VarInt {
     #[allow(dead_code)]
     fn byte_size(&self) -> usize {
@@ -120,6 +134,11 @@ impl Token {
         input.read_exact(&mut buf).unwrap();
         Token(buf)
     }
+
+    pub(crate) fn raw_length(&self) -> usize {
+        let token_length = self.0.len();
+        size_of_varint(token_length as u64) + token_length
+    }
 }
 
 impl FromReadBytes for Token {
@@ -171,5 +190,9 @@ impl Version {
         let mut buf = [0u8; 4];
         BigEndian::write_u32(&mut buf, self.0);
         buf
+    }
+
+    pub fn raw_length(&self) -> usize {
+        4
     }
 }

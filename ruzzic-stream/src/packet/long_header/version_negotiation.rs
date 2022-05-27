@@ -25,6 +25,15 @@ impl Body {
     pub(super) fn payload(&self) -> &[u8] {
         &[]
     }
+
+    pub(super) fn raw_length(&self) -> usize {
+        self.connection_id_pair.raw_length()
+            + self
+                .supported_versions
+                .0
+                .iter()
+                .fold(0, |acc, v| acc + v.raw_length())
+    }
 }
 
 #[cfg(test)]
