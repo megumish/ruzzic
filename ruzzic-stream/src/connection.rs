@@ -1,6 +1,6 @@
 use crate::read_bytes_to::FromReadBytesWith;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ConnectionID(pub(crate) Vec<u8>);
 
 impl FromReadBytesWith<()> for ConnectionID {
@@ -9,5 +9,15 @@ impl FromReadBytesWith<()> for ConnectionID {
         Self: Sized,
     {
         unimplemented!()
+    }
+}
+
+impl ConnectionID {
+    pub(crate) fn to_vec(&self) -> Vec<u8> {
+        self.0.clone()
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
     }
 }

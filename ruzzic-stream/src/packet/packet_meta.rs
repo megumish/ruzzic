@@ -7,7 +7,7 @@ use crate::{
 
 use super::{long_header, PacketBodyType};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PacketMeta {
     pub(crate) first_byte: FirstByte,
     pub(crate) version: Version,
@@ -27,7 +27,7 @@ impl FromReadBytesWith<()> for PacketMeta {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FirstByte(pub(crate) BitArr!(for 8, in Msb0, u8));
 
 impl FromReadBytesWith<()> for FirstByte {

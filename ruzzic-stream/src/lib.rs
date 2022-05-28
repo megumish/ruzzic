@@ -1,14 +1,15 @@
 use bitvec::macros::internal::funty::IsInteger;
 use byteorder::{BigEndian, ByteOrder, NativeEndian, NetworkEndian, ReadBytesExt, WriteBytesExt};
 use derive_more::{From, Into};
+use ruzzic_common::QuicVersion;
 use std::{io::Cursor, mem::size_of, slice::from_raw_parts};
 
-use self::read_bytes_to::FromReadBytesWith;
+use self::read_bytes_to::{FromReadBytes, FromReadBytesWith, ReadBytesTo};
 
 mod connection;
 mod frame;
 pub mod packet;
-mod read_bytes_to;
+pub mod read_bytes_to;
 mod stream;
 
 // https://www.rfc-editor.org/rfc/rfc9000.html#name-variable-length-integer-enc
@@ -123,7 +124,7 @@ impl VarInt {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token(Vec<u8>);
 
 impl Token {
@@ -141,31 +142,13 @@ impl Token {
     }
 }
 
-impl FromReadBytes for Token {
-    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+impl FromReadBytesWith<()> for Token {
+    fn from_read_bytes_with<T: std::io::Read>(input: &mut T, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {
         Ok(Self::read_bytes(input))
     }
-}
-
-trait ReadBytesTo: std::io::Read {
-    fn read_bytes_to<T>(&mut self) -> Result<T, std::io::Error>
-    where
-        Self: Sized,
-        T: FromReadBytes,
-    {
-        T::from_read_bytes(self)
-    }
-}
-
-impl<R> ReadBytesTo for R where R: std::io::Read {}
-
-trait FromReadBytes {
-    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
-    where
-        Self: Sized;
 }
 
 #[derive(Debug, PartialEq)]
@@ -192,7 +175,20 @@ impl Version {
         buf
     }
 
+    pub fn to_u32(&self) -> u32 {
+        self.0
+    }
+
     pub fn raw_length(&self) -> usize {
         4
+    }
+}
+
+impl From<Version> for QuicVersion {
+    fn from(version: Version) -> Self {
+        match version.to_u32() {
+            0x1 => QuicVersion::Rfc9000,
+            x => QuicVersion::Others(x),
+        }
     }
 }

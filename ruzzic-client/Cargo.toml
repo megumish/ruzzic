@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 ruzzic = { path = "../ruzzic" }
+ruzzic-common = { path = "../ruzzic-common"}
 ruzzic-http3 = { path = "../ruzzic-http3"}
 anyhow = "1"

@@ -1,4 +1,5 @@
-use ruzzic::{QuicVersion, Ruzzic, RuzzicInit};
+use ruzzic::{Ruzzic, RuzzicInit};
+use ruzzic_common::QuicVersion;
 use ruzzic_http3::{GetRequest, GetRequestInit, Http3App, ResponseMessage};
 
 #[tokio::main]

@@ -1,4 +1,5 @@
-use ruzzic::{QuicVersion, Ruzzic, RuzzicInit, SimpleApp};
+use ruzzic::{simple_app::SimpleAppMessage, Ruzzic, RuzzicInit, SimpleApp};
+use ruzzic_common::QuicVersion;
 use tokio_stream::StreamExt;
 
 #[tokio::main]
@@ -11,9 +12,10 @@ async fn main() -> anyhow::Result<()> {
     .init()
     .await?;
 
-    let ruzzic_server = ruzzic.server().await;
+    let mut ruzzic_server = ruzzic.server().await;
 
-    while let Some(message) = ruzzic_server.next().await? {
+    loop {
+        let message = ruzzic_server.next().await;
         println!("{message:?}");
     }
 

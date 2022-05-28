@@ -1,8 +1,9 @@
 use std::marker::PhantomData;
 
+use ruzzic_common::QuicVersion;
 use tokio_stream::Stream;
 
-use crate::{tokio_stream::RuzzicTokioStream, version::QuicVersions, AppLayer};
+use crate::{tokio_stream::RuzzicTokioStream, AppLayer};
 
 pub struct RuzzicServer<App>
 where
@@ -17,7 +18,7 @@ where
     App: AppLayer,
 {
     pub(crate) async fn new(
-        support_versions: Vec<crate::QuicVersion>,
+        support_versions: Vec<QuicVersion>,
         socket: tokio::net::UdpSocket,
     ) -> Self {
         let quic_stream = RuzzicTokioStream::new(support_versions, socket);

@@ -1,13 +1,17 @@
-use std::io::{Cursor, Read};
+use std::{
+    borrow::Cow,
+    io::{Cursor, Read},
+};
 
 use super::ConnectionIDPair;
 use crate::{
-    packet::{packet_meta::PacketMeta, PacketData, PacketNumber, PacketPayload},
+    connection::ConnectionID,
+    packet::{self, packet_meta::PacketMeta, PacketData, PacketNumber, PacketPayload},
     read_bytes_to::FromReadBytesWith,
     read_varint, ReadBytesTo, Token,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Body {
     pub connection_id_pair: ConnectionIDPair,
     pub token: Token,
@@ -44,6 +48,26 @@ impl FromReadBytesWith<&PacketMeta> for Body {
 impl Body {
     pub(super) fn payload(&self) -> &[u8] {
         &self.packet_payload.0
+    }
+
+    pub(super) fn destination_connection_id(&self) -> ConnectionID {
+        ConnectionID(self.connection_id_pair.destination_id.clone())
+    }
+
+    pub(super) fn source_connection_id(&self) -> ConnectionID {
+        ConnectionID(self.connection_id_pair.source_id.clone())
+    }
+
+    pub(crate) fn token_raw_length(&self) -> usize {
+        self.token.raw_length()
+    }
+
+    pub(super) fn packet_number(&self) -> PacketNumber {
+        self.packet_number.clone()
+    }
+
+    pub(super) fn overwrite_packet_number(&mut self, packet_number: PacketNumber) {
+        self.packet_number = packet_number;
     }
 
     pub(super) fn raw_length(&self) -> usize {

@@ -12,3 +12,12 @@ bitvec = "0.22"
 byteorder = "1.4"
 derive_more = "0"
 hex = "0.4"
+sha2 = "0.10"
+hmac = "0.12"
+aes-gcm = "0.9"
+generic-array = "0.14"
+ruzzic-common = { path = "../ruzzic-common" }
+log = "0.4"
+
+[dev-dependencies]
+env_logger = "0.9"

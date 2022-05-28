@@ -1,7 +1,9 @@
-use super::{ConnectionIDPair, Versions};
-use crate::{read_bytes_to::FromReadBytesWith, ReadBytesTo};
+use std::borrow::Cow;
 
-#[derive(Debug, PartialEq)]
+use super::{ConnectionIDPair, Versions};
+use crate::{connection::ConnectionID, read_bytes_to::FromReadBytesWith, ReadBytesTo};
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Body {
     pub connection_id_pair: ConnectionIDPair,
     pub supported_versions: Versions,
@@ -24,6 +26,14 @@ impl FromReadBytesWith<()> for Body {
 impl Body {
     pub(super) fn payload(&self) -> &[u8] {
         &[]
+    }
+
+    pub(super) fn destination_connection_id(&self) -> ConnectionID {
+        ConnectionID(self.connection_id_pair.destination_id.clone())
+    }
+
+    pub(super) fn source_connection_id(&self) -> ConnectionID {
+        ConnectionID(self.connection_id_pair.source_id.clone())
     }
 
     pub(super) fn raw_length(&self) -> usize {

@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "ruzzic",
+    "ruzzic-common",
     "ruzzic-client",
     "ruzzic-server",
     "ruzzic-stream",

@@ -1,12 +1,15 @@
+use std::borrow::Cow;
+
 use bitvec::prelude::*;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use crate::{
+    connection::ConnectionID,
     read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWith},
     FromReadBytes, Version,
 };
 
-use super::packet_meta::PacketMeta;
+use super::{packet_meta::PacketMeta, PacketNumber};
 
 pub mod initial;
 pub mod version_negotiation;
@@ -18,7 +21,7 @@ pub struct LongHeaderMeta {
 }
 
 // TODO: use ConnectionID struct instead of Vec
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ConnectionIDPair {
     pub destination_id: Vec<u8>,
     pub source_id: Vec<u8>,
@@ -32,10 +35,10 @@ pub enum PacketType {
     Retry,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Versions(Vec<Version>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LongHeader {
     VersionNegotiation(version_negotiation::Body),
     Initial(initial::Body),
@@ -46,6 +49,27 @@ impl LongHeader {
         match self {
             LongHeader::VersionNegotiation(b) => b.payload(),
             LongHeader::Initial(b) => b.payload(),
+        }
+    }
+
+    pub(super) fn destination_connection_id(&self) -> ConnectionID {
+        match self {
+            LongHeader::VersionNegotiation(b) => b.destination_connection_id(),
+            LongHeader::Initial(b) => b.destination_connection_id(),
+        }
+    }
+
+    pub(super) fn source_connection_id(&self) -> ConnectionID {
+        match self {
+            LongHeader::VersionNegotiation(b) => b.source_connection_id(),
+            LongHeader::Initial(b) => b.source_connection_id(),
+        }
+    }
+
+    pub(super) fn packet_number(&self) -> PacketNumber {
+        match self {
+            LongHeader::VersionNegotiation(b) => unreachable!(),
+            LongHeader::Initial(b) => b.packet_number(),
         }
     }
 
@@ -99,8 +123,8 @@ impl ConnectionIDPair {
     }
 }
 
-impl FromReadBytes for ConnectionIDPair {
-    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+impl FromReadBytesWith<()> for ConnectionIDPair {
+    fn from_read_bytes_with<T: std::io::Read>(input: &mut T, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {
@@ -119,8 +143,8 @@ impl Versions {
     }
 }
 
-impl FromReadBytes for Versions {
-    fn from_read_bytes<T: std::io::Read>(input: &mut T) -> Result<Self, std::io::Error>
+impl FromReadBytesWith<()> for Versions {
+    fn from_read_bytes_with<T: std::io::Read>(input: &mut T, _: ()) -> Result<Self, std::io::Error>
     where
         Self: Sized,
     {

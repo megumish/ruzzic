@@ -1,18 +1,15 @@
+use ruzzic_common::QuicVersions;
 use server::RuzzicServer;
 use std::{default::Default, marker::PhantomData, net::SocketAddr};
 use tokio::net::UdpSocket;
-use version::QuicVersions;
 
 mod tokio_stream;
 
 pub mod error;
 pub mod server;
 pub mod simple_app;
-pub mod version;
 
-pub use self::{
-    error::RuzzicError, error::RuzzicResult, simple_app::SimpleApp, version::QuicVersion,
-};
+pub use self::{error::RuzzicError, error::RuzzicResult, simple_app::SimpleApp};
 
 pub struct Ruzzic<App>
 where
@@ -20,7 +17,7 @@ where
 {
     support_versions: QuicVersions,
     socket: UdpSocket,
-    _phantom: PhantomData<App>,
+    _phantom: PhantomData<fn() -> App>,
 }
 
 impl<App> Ruzzic<App>
@@ -69,7 +66,7 @@ pub trait AppError {
 pub struct RuzzicInit<'a, App> {
     pub support_versions: QuicVersions,
     pub self_addr: &'a str,
-    pub _phantom: PhantomData<App>,
+    pub _phantom: PhantomData<fn() -> App>,
 }
 
 impl<App> RuzzicInit<'_, App>

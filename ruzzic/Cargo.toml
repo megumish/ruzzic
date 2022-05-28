@@ -12,3 +12,5 @@ tokio-util = { version = "0.7", features = ["net", "codec"]}
 tokio-stream = { version = "0.1" }
 bytes = { version = "1" }
 async-trait = "0"
+ruzzic-common = { path = "../ruzzic-common" }
+ruzzic-stream = { path = "../ruzzic-stream" }
