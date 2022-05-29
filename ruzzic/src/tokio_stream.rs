@@ -1,7 +1,7 @@
 use std::{io::Cursor, net::SocketAddr, pin::Pin};
 
 use bytes::{Buf, BytesMut};
-use ruzzic_common::{QuicVersion, QuicVersions};
+use ruzzic_common::{EndpointType, QuicVersion, QuicVersions};
 use ruzzic_stream::{packet::Packet, read_bytes_to::FromReadBytes};
 use tokio_stream::Stream;
 use tokio_util::{codec::Decoder, udp::UdpFramed};
@@ -77,7 +77,7 @@ impl Decoder for RuzzicTokioCodec {
             }
         };
 
-        let raw_packet = packet.remove_header_protection();
+        let packet = packet.decrypt(EndpointType::Server, None);
 
         Ok(None)
     }

@@ -78,6 +78,33 @@ fn protected_client_initial_packet() {
         PROTECTED_CLIENT_INITIAL_PACKET.len()
     );
     eprintln!("{:x?}", initial_packet);
-    let unprotected_header_initial_packet = initial_packet.remove_header_protection();
+    let unprotected_header_initial_packet = initial_packet.decrypt(EndpointType::Server, None);
+    eprintln!("{:x?}", unprotected_header_initial_packet);
+}
+
+#[test]
+fn protected_server_initial_packet() {
+    env_logger::init();
+    const PROTECTED_SERVER_INITIAL_PACKET: &[u8] = &[
+        207, 0, 0, 0, 1, 0, 8, 240, 103, 165, 80, 42, 66, 98, 181, 0, 64, 117, 192, 217, 90, 72,
+        44, 208, 153, 28, 210, 91, 10, 172, 64, 106, 88, 22, 182, 57, 65, 0, 243, 122, 28, 105,
+        121, 117, 84, 120, 11, 179, 140, 197, 169, 159, 94, 222, 76, 247, 60, 62, 194, 73, 58, 24,
+        57, 179, 219, 203, 163, 246, 234, 70, 197, 183, 104, 77, 243, 84, 142, 125, 222, 185, 195,
+        191, 156, 115, 204, 63, 59, 222, 215, 75, 86, 43, 251, 25, 251, 132, 2, 47, 142, 244, 205,
+        217, 55, 149, 215, 125, 6, 237, 187, 122, 175, 47, 88, 137, 24, 80, 171, 189, 202, 61, 32,
+        57, 140, 39, 100, 86, 203, 196, 33, 88, 64, 125, 208, 116, 238,
+    ];
+
+    let mut input = Cursor::new(PROTECTED_SERVER_INITIAL_PACKET);
+    let initial_packet: Packet = input.read_bytes_to().unwrap();
+    assert_eq!(
+        initial_packet.raw_length(),
+        PROTECTED_SERVER_INITIAL_PACKET.len()
+    );
+    eprintln!("{:x?}", initial_packet);
+    let unprotected_header_initial_packet = initial_packet.decrypt(
+        EndpointType::Client,
+        Some(vec![0x83, 0x94, 0xc8, 0xf0, 0x3e, 0x51, 0x57, 0x8]),
+    );
     eprintln!("{:x?}", unprotected_header_initial_packet);
 }

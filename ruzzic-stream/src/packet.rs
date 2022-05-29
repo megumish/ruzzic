@@ -9,7 +9,8 @@ use bitvec::{field::BitField, macros::internal::funty::IsNumber};
 use byteorder::{BigEndian, ByteOrder};
 use generic_array::GenericArray;
 use hmac::{Hmac, Mac};
-use ruzzic_common::QuicVersion;
+use log::kv::source;
+use ruzzic_common::{EndpointType, QuicVersion};
 use sha2::{Digest, Sha256};
 
 use crate::{
@@ -76,36 +77,20 @@ impl Packet {
         self.raw[..self.raw_length() - self.payload().len()].to_vec()
     }
 
-    pub fn remove_header_protection(&self) -> Packet {
+    pub fn decrypt(
+        &self,
+        endpoint_type: EndpointType,
+        client_connection_id: Option<Vec<u8>>,
+    ) -> Packet {
         let initial_salt = Into::<QuicVersion>::into(self.version()).initial_salt();
-        log::debug!("initial_salt: {initial_salt:x?}");
-        let initial_secret =
-            hkdf_extract(&initial_salt, &self.destination_connection_id().to_vec());
-        log::debug!("initial_secret: {initial_secret:x?}");
+        let client_connection_id = client_connection_id.map(|v| ConnectionID(v));
 
-        let client_initial_secret = hkdf_expand_label(
-            &initial_secret,
-            "client in".as_bytes(),
-            &[],
-            Sha256::output_size() as u16,
+        let decryption_kit = DecryptionKit::new(
+            &initial_salt,
+            client_connection_id.unwrap_or(self.destination_connection_id()),
+            endpoint_type,
         );
-        log::debug!("client_initial_secret: {client_initial_secret:x?}");
-        let (client_key, client_iv, client_hp) = get_key_iv_hp(&client_initial_secret);
-        log::debug!("client_key: {client_key:x?}");
-        log::debug!("client_iv: {client_iv:x?}");
-        log::debug!("client_hp: {client_hp:x?}");
-
-        let server_initial_secret = hkdf_expand_label(
-            &initial_secret,
-            "server in".as_bytes(),
-            &[],
-            Sha256::output_size() as u16,
-        );
-        log::debug!("server_initial_secret: {server_initial_secret:x?}");
-        let (server_key, server_iv, server_hp) = get_key_iv_hp(&server_initial_secret);
-        log::debug!("server_key: {server_key:x?}");
-        log::debug!("server_iv: {server_iv:x?}");
-        log::debug!("server_hp: {server_hp:x?}");
+        log::debug!("Decryption kit: {:x?}", decryption_kit);
 
         // TODO: this is long header packet only
         let pn_offset = 7
@@ -127,7 +112,8 @@ impl Packet {
 
         let mask = {
             let mut mask = GenericArray::clone_from_slice(sample);
-            Aes128::new(&GenericArray::clone_from_slice(&client_hp)).encrypt_block(&mut mask);
+            Aes128::new(&GenericArray::clone_from_slice(&decryption_kit.hp))
+                .encrypt_block(&mut mask);
             mask[0..5].to_vec()
         };
         log::debug!("mask: {mask:x?}");
@@ -164,14 +150,14 @@ impl Packet {
 
         let packet_number_bytes = packet_number.0.to_be_bytes();
         let packet_number_bytes = [
-            &vec![0; client_iv.len() - packet_number_bytes.len()][..],
+            &vec![0; decryption_kit.iv.len() - packet_number_bytes.len()][..],
             &packet_number_bytes,
         ]
         .concat();
         let nonce = packet_number_bytes
             .iter()
             .enumerate()
-            .map(|(i, b)| b ^ client_iv[i])
+            .map(|(i, b)| b ^ decryption_kit.iv[i])
             .collect::<Vec<u8>>();
 
         let aad = unprotected_packet.get_header_bytes();
@@ -180,7 +166,7 @@ impl Packet {
         let data = unprotected_packet.payload();
         log::debug!("data: {data:x?}");
 
-        let aes = Aes128Gcm::new(&GenericArray::clone_from_slice(&client_key));
+        let aes = Aes128Gcm::new(&GenericArray::clone_from_slice(&decryption_kit.key));
 
         let aead_payload = aead::Payload {
             msg: data,
@@ -257,6 +243,46 @@ fn get_key_iv_hp(endpoint_initial_secret: &[u8]) -> (Vec<u8>, Vec<u8>, Vec<u8>) 
 
 fn div_ceil(a: usize, b: usize) -> usize {
     (a + b - 1) / b
+}
+
+#[derive(Debug)]
+struct DecryptionKit {
+    pub(self) key: Vec<u8>,
+    pub(self) iv: Vec<u8>,
+    pub(self) hp: Vec<u8>,
+}
+
+impl DecryptionKit {
+    fn new(initial_salt: &[u8], connection_id: ConnectionID, endpoint_type: EndpointType) -> Self {
+        let (key, iv, hp) = match endpoint_type {
+            EndpointType::Server => {
+                // server received a client packet
+                new_decryption_kit(initial_salt, connection_id, "client in".as_bytes())
+            }
+            EndpointType::Client => {
+                // client received a server packet
+                new_decryption_kit(initial_salt, connection_id, "server in".as_bytes())
+            }
+        };
+
+        Self { key, iv, hp }
+    }
+}
+
+fn new_decryption_kit(
+    initial_salt: &[u8],
+    connection_id: ConnectionID,
+    label: &[u8],
+) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+    log::debug!("initial_salt: {initial_salt:x?}");
+    log::debug!("connection_id: {connection_id:x?}",);
+    let initial_secret = hkdf_extract(&initial_salt, &connection_id.to_vec());
+    log::debug!("initial_secret: {initial_secret:x?}");
+
+    let endpoint_initial_secret =
+        hkdf_expand_label(&initial_secret, label, &[], Sha256::output_size() as u16);
+
+    get_key_iv_hp(&endpoint_initial_secret)
 }
 
 #[derive(Debug, Clone, PartialEq)]
