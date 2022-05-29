@@ -2,12 +2,9 @@ use std::borrow::Cow;
 
 use bitvec::prelude::*;
 use byteorder::{BigEndian, ReadBytesExt};
+use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWith};
 
-use crate::{
-    connection::ConnectionID,
-    read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWith},
-    FromReadBytes, Version,
-};
+use crate::{connection::ConnectionID, Version};
 
 use super::{packet_meta::PacketMeta, PacketNumber};
 

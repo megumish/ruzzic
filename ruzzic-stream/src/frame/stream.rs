@@ -1,7 +1,7 @@
 use bitvec::{prelude::*, slice::BitSlice};
+use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
 use crate::{
-    read_bytes_to::FromReadBytesWith,
     read_varint,
     stream::{StreamData, StreamID},
     VarInt,
@@ -52,10 +52,10 @@ mod tests {
     use std::io::Cursor;
 
     use bitvec::prelude::*;
+    use ruzzic_common::read_bytes_to::ReadBytesToWith;
 
     use super::Body;
     use crate::{
-        read_bytes_to::ReadBytesToWith,
         stream::{StreamData, StreamID},
         VarInt,
     };

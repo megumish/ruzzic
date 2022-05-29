@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
+use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo};
+
 use super::{ConnectionIDPair, Versions};
-use crate::{connection::ConnectionID, read_bytes_to::FromReadBytesWith, ReadBytesTo};
+use crate::connection::ConnectionID;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Body {
@@ -48,10 +50,12 @@ impl Body {
 
 #[cfg(test)]
 mod tests {
-    use crate::{read_bytes_to::ReadBytesTo, Version};
+
+    use crate::Version;
 
     use super::*;
     use byteorder::{BigEndian, ByteOrder};
+    use ruzzic_common::read_bytes_to::ReadBytesTo;
     use std::io::Cursor;
 
     #[test]

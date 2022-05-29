@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::{frame::Frame, read_bytes_to::ReadBytesTo};
+    use ruzzic_common::read_bytes_to::ReadBytesTo;
     use std::io::Cursor;
+
+    use crate::frame::Frame;
 
     #[test]
     fn padding_frame() {

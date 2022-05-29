@@ -1,9 +1,7 @@
 use bitvec::prelude::*;
+use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo};
 
-use crate::{
-    read_bytes_to::{FromReadBytesWith, ReadBytesTo},
-    Version,
-};
+use crate::Version;
 
 use super::{long_header, PacketBodyType};
 

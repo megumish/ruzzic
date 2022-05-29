@@ -1,14 +1,12 @@
-use std::{
-    borrow::Cow,
-    io::{Cursor, Read},
-};
+use std::io::{Cursor, Read};
+
+use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo};
 
 use super::ConnectionIDPair;
 use crate::{
     connection::ConnectionID,
-    packet::{self, packet_meta::PacketMeta, PacketData, PacketNumber, PacketPayload},
-    read_bytes_to::FromReadBytesWith,
-    read_varint, ReadBytesTo, Token,
+    packet::{packet_meta::PacketMeta, PacketData, PacketNumber, PacketPayload},
+    read_varint, Token,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -84,11 +82,9 @@ impl Body {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        packet::packet_meta::FirstByte, read_bytes_to::ReadBytesToWith, u64_to_varint_exact_size,
-        Version,
-    };
+    use crate::{packet::packet_meta::FirstByte, u64_to_varint_exact_size, Version};
     use bitvec::prelude::*;
+    use ruzzic_common::read_bytes_to::ReadBytesToWith;
     use std::io::Cursor;
 
     #[test]

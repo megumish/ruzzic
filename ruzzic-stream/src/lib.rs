@@ -1,15 +1,12 @@
 use bitvec::macros::internal::funty::IsInteger;
 use byteorder::{BigEndian, ByteOrder, NativeEndian, NetworkEndian, ReadBytesExt, WriteBytesExt};
 use derive_more::{From, Into};
-use ruzzic_common::QuicVersion;
+use ruzzic_common::{read_bytes_to::FromReadBytesWith, QuicVersion};
 use std::{io::Cursor, mem::size_of, slice::from_raw_parts};
-
-use self::read_bytes_to::{FromReadBytes, FromReadBytesWith, ReadBytesTo};
 
 mod connection;
 mod frame;
 pub mod packet;
-pub mod read_bytes_to;
 mod stream;
 
 // https://www.rfc-editor.org/rfc/rfc9000.html#name-variable-length-integer-enc

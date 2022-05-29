@@ -1,6 +1,8 @@
 use std::io::Read;
 
-use crate::{read_bytes_to::FromReadBytesWith, read_varint, stream::StreamDirection, VarInt};
+use ruzzic_common::read_bytes_to::FromReadBytesWith;
+
+use crate::{read_varint, stream::StreamDirection, VarInt};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -30,9 +32,10 @@ impl FromReadBytesWith<u64> for Body {
 
 #[cfg(test)]
 mod tests {
-    use crate::{read_bytes_to::ReadBytesToWith, stream::StreamDirection, VarInt};
+    use crate::{stream::StreamDirection, VarInt};
+    use ruzzic_common::read_bytes_to::ReadBytesToWith;
 
-    use super::Body;
+    use super::*;
     use std::io::Cursor;
 
     #[test]

@@ -1,4 +1,6 @@
-use crate::{read_bytes_to::FromReadBytesWith, read_varint, VarInt};
+use ruzzic_common::read_bytes_to::FromReadBytesWith;
+
+use crate::{read_varint, VarInt};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -17,11 +19,10 @@ impl FromReadBytesWith<()> for Body {
 
 #[cfg(test)]
 mod tests {
+    use ruzzic_common::read_bytes_to::ReadBytesTo;
     use std::io::Cursor;
 
-    use super::Body;
-
-    use crate::{read_bytes_to::ReadBytesTo, VarInt};
+    use super::*;
 
     #[test]
     fn max_data() {

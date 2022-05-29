@@ -1,6 +1,6 @@
-use crate::{
-    read_bytes_to::FromReadBytesWith, read_varint, stream::StreamID, ApplicationProtocolErrorCode,
-};
+use ruzzic_common::read_bytes_to::FromReadBytesWith;
+
+use crate::{read_varint, stream::StreamID, ApplicationProtocolErrorCode};
 
 #[derive(Debug, PartialEq)]
 pub struct Body {
@@ -24,10 +24,10 @@ impl FromReadBytesWith<()> for Body {
 
 #[cfg(test)]
 mod tests {
+    use ruzzic_common::read_bytes_to::ReadBytesTo;
     use std::io::Cursor;
 
     use super::*;
-    use crate::read_bytes_to::ReadBytesTo;
 
     #[test]
     fn stop_sending() {

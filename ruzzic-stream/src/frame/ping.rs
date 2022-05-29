@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::{frame::Frame, read_bytes_to::ReadBytesTo};
+    use crate::frame::Frame;
+
+    use ruzzic_common::read_bytes_to::ReadBytesTo;
     use std::io::Cursor;
 
     #[test]

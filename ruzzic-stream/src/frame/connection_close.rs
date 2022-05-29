@@ -1,4 +1,6 @@
-use crate::{read_bytes_to::FromReadBytesWith, read_varint, VarInt};
+use ruzzic_common::read_bytes_to::FromReadBytesWith;
+
+use crate::{read_varint, VarInt};
 
 use super::FrameType;
 
@@ -40,9 +42,8 @@ impl FromReadBytesWith<u64> for Body {
 
 #[cfg(test)]
 mod tests {
+    use ruzzic_common::read_bytes_to::ReadBytesToWith;
     use std::io::Cursor;
-
-    use crate::read_bytes_to::ReadBytesToWith;
 
     use super::*;
 

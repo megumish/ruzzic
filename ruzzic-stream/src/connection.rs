@@ -1,4 +1,4 @@
-use crate::read_bytes_to::FromReadBytesWith;
+use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConnectionID(pub(crate) Vec<u8>);

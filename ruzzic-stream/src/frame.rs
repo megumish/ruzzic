@@ -1,9 +1,7 @@
 use bitvec::prelude::*;
+use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWith};
 
-use crate::{
-    read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWith},
-    read_varint,
-};
+use crate::read_varint;
 
 mod ack;
 mod connection_close;

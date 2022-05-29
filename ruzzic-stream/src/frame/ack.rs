@@ -1,4 +1,6 @@
-use crate::{packet::PacketNumber, read_bytes_to::FromReadBytesWith, read_varint, VarInt};
+use ruzzic_common::read_bytes_to::FromReadBytesWith;
+
+use crate::{packet::PacketNumber, read_varint, VarInt};
 use std::io::Read;
 
 #[derive(Debug, PartialEq)]
@@ -60,10 +62,10 @@ impl FromReadBytesWith<u64> for Body {
 
 #[cfg(test)]
 mod tests {
+    use ruzzic_common::read_bytes_to::ReadBytesToWith;
     use std::io::Cursor;
 
     use super::*;
-    use crate::read_bytes_to::ReadBytesToWith;
 
     #[test]
     fn ack_frame_0x02() {
