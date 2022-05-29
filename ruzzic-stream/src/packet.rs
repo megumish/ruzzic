@@ -79,7 +79,7 @@ impl Packet {
 
     pub fn decrypt(
         &self,
-        endpoint_type: EndpointType,
+        endpoint_type: &EndpointType,
         client_connection_id: Option<Vec<u8>>,
     ) -> Packet {
         let initial_salt = Into::<QuicVersion>::into(self.version()).initial_salt();
@@ -92,95 +92,63 @@ impl Packet {
         );
         log::debug!("Decryption kit: {:x?}", decryption_kit);
 
-        // TODO: this is long header packet only
-        let pn_offset = 7
-            + self.destination_connection_id().len()
-            + self.source_connection_id().unwrap().len()
-            + size_of_varint(self.payload().len() as u64)
-            + match &self.body {
-                PacketBody::Long(LongHeader::Initial(b)) => b.token_raw_length(),
-                _ => 0,
-            };
-        log::debug!("pn_offset: {pn_offset}");
-        let sample_offset = pn_offset + 4;
-        log::debug!("sample_offset: {sample_offset}");
-        let sample_length = 16; // aes_gcm_128_key_size
-        log::debug!("sample_length: {sample_length}");
+        let header_removal_kit = HeaderRemovalKit::new(
+            self.destination_connection_id(),
+            self.source_connection_id(),
+            self.payload(),
+            &self.body,
+            &self.raw,
+            &decryption_kit.hp,
+            128 / 8, // AES_128_GCM key length
+        );
 
-        let sample = &self.raw[sample_offset..sample_offset + sample_length];
-        log::debug!("sample: {sample:x?}");
-
-        let mask = {
-            let mut mask = GenericArray::clone_from_slice(sample);
-            Aes128::new(&GenericArray::clone_from_slice(&decryption_kit.hp))
-                .encrypt_block(&mut mask);
-            mask[0..5].to_vec()
-        };
-        log::debug!("mask: {mask:x?}");
-
-        // TODO: this is long header packet only
-        let unprotected_first_byte = self.meta.first_byte.0.load_be::<u8>() ^ (mask[0] & 0x0f);
-        log::debug!("unprotected_first_byte: {unprotected_first_byte:x?}");
-        let mut unprotected_meta = self.meta.clone();
-        unprotected_meta
-            .first_byte
-            .0
-            .store_be(unprotected_first_byte);
-
-        let unprotected_packet_length = unprotected_meta.packet_number_length();
-        log::debug!("unprotected_packet_length: {unprotected_packet_length}");
-
-        let mut raw = self.raw.clone();
-
-        let unprotected_packet_number = raw
-            [pn_offset..pn_offset + unprotected_packet_length as usize]
-            .to_vec()
-            .into_iter()
-            .enumerate()
-            .map(|(i, b)| b ^ mask[i + 1])
-            .collect::<Vec<u8>>();
-        raw[pn_offset..pn_offset + unprotected_packet_length as usize]
-            .copy_from_slice(&unprotected_packet_number);
-        raw[0] = unprotected_first_byte;
-        let mut unprotected_input = Cursor::new(raw);
-
-        let unprotected_packet = Packet::from_read_bytes(&mut unprotected_input).unwrap();
+        let unprotected_packet = header_removal_kit.remove_protection(&self.raw);
 
         let packet_number = unprotected_packet.body.packet_number();
-
         let packet_number_bytes = packet_number.0.to_be_bytes();
-        let packet_number_bytes = [
-            &vec![0; decryption_kit.iv.len() - packet_number_bytes.len()][..],
+        let packet_header = unprotected_packet.get_header_bytes();
+
+        let decrypted = decrypt_payload(
+            unprotected_packet.payload(),
             &packet_number_bytes,
-        ]
-        .concat();
-        let nonce = packet_number_bytes
-            .iter()
-            .enumerate()
-            .map(|(i, b)| b ^ decryption_kit.iv[i])
-            .collect::<Vec<u8>>();
-
-        let aad = unprotected_packet.get_header_bytes();
-        log::debug!("aad: {aad:x?}");
-
-        let data = unprotected_packet.payload();
-        log::debug!("data: {data:x?}");
-
-        let aes = Aes128Gcm::new(&GenericArray::clone_from_slice(&decryption_kit.key));
-
-        let aead_payload = aead::Payload {
-            msg: data,
-            aad: &aad,
-        };
-        let decrypted = aes
-            .decrypt(&GenericArray::clone_from_slice(&nonce), aead_payload)
-            .unwrap();
+            decryption_kit,
+            &packet_header,
+        );
 
         let mut frames_input = Cursor::new(decrypted);
         let frames: Frames = frames_input.read_bytes_to().unwrap();
         log::debug!("frames: {frames:?}");
         todo!()
     }
+}
+
+fn decrypt_payload(
+    payload: &[u8],
+    packet_number: &[u8],
+    decryption_kit: DecryptionKit,
+    packet_header: &[u8],
+) -> Vec<u8> {
+    let packet_number = [
+        &vec![0; decryption_kit.iv.len() - packet_number.len()][..],
+        &packet_number,
+    ]
+    .concat();
+    let nonce = packet_number
+        .iter()
+        .enumerate()
+        .map(|(i, b)| b ^ decryption_kit.iv[i])
+        .collect::<Vec<u8>>();
+
+    let aad = packet_header;
+    let msg = payload;
+
+    let aead_payload = aead::Payload { msg, aad };
+    // Only considered during InitialPacket
+    let aes = Aes128Gcm::new(&GenericArray::clone_from_slice(&decryption_kit.key));
+
+    // TODO: handle errors
+    aes.decrypt(&GenericArray::from_slice(&nonce), aead_payload)
+        .unwrap()
 }
 
 fn hkdf_extract(salt: &[u8], ikm: &[u8]) -> Vec<u8> {
@@ -253,7 +221,7 @@ struct DecryptionKit {
 }
 
 impl DecryptionKit {
-    fn new(initial_salt: &[u8], connection_id: ConnectionID, endpoint_type: EndpointType) -> Self {
+    fn new(initial_salt: &[u8], connection_id: ConnectionID, endpoint_type: &EndpointType) -> Self {
         let (key, iv, hp) = match endpoint_type {
             EndpointType::Server => {
                 // server received a client packet
@@ -283,6 +251,85 @@ fn new_decryption_kit(
         hkdf_expand_label(&initial_secret, label, &[], Sha256::output_size() as u16);
 
     get_key_iv_hp(&endpoint_initial_secret)
+}
+
+#[derive(Debug)]
+struct HeaderRemovalKit {
+    pub(self) packet_number_offset: usize,
+    pub(self) packet_number_length: usize,
+    pub(self) mask: Vec<u8>,
+    first_byte: u8,
+}
+
+impl HeaderRemovalKit {
+    fn new(
+        destination_connection_id: ConnectionID,
+        source_connection_id: Option<ConnectionID>,
+        payload: &[u8],
+        body: &PacketBody,
+        raw: &[u8],
+        hp: &[u8],
+        sample_length: usize,
+    ) -> Self {
+        let packet_number_offset = match body {
+            PacketBody::Long(lh) => {
+                7
+                + destination_connection_id.len()
+                // long header packet must have a source connection id
+                + source_connection_id.unwrap().len()
+                + size_of_varint(payload.len() as u64)
+                + match lh {
+                    LongHeader::Initial(b) => b.token_raw_length(),
+                    _ => 0,
+                }
+            }
+            // short header packet
+            _ => 1 + destination_connection_id.len(),
+        };
+
+        let sample_offset = 4 + packet_number_offset;
+        let sample = &raw[sample_offset..sample_offset + sample_length];
+
+        let mask = {
+            let mut mask = GenericArray::clone_from_slice(&sample);
+            Aes128::new(&GenericArray::from_slice(hp)).encrypt_block(&mut mask);
+            mask
+        };
+
+        let unprotected_first_byte = match body {
+            PacketBody::Long(_) => raw[0] ^ (mask[0] & 0x0f),
+            // short header packet
+            _ => raw[0] ^ (mask[0] & 0x1f),
+        };
+
+        let packet_number_length = (unprotected_first_byte & 0x03) as usize + 1;
+
+        Self {
+            packet_number_offset,
+            packet_number_length,
+            mask: mask.to_vec(),
+            first_byte: unprotected_first_byte,
+        }
+    }
+
+    fn remove_protection(&self, raw: &[u8]) -> Packet {
+        let mut raw = raw.to_vec();
+
+        let packet_number = raw
+            [self.packet_number_offset..self.packet_number_offset + self.packet_number_length]
+            .iter()
+            .enumerate()
+            .map(|(i, b)| b ^ self.mask[i + 1])
+            .collect::<Vec<u8>>();
+
+        raw[self.packet_number_offset..self.packet_number_offset + self.packet_number_length]
+            .copy_from_slice(&packet_number);
+        raw[0] = self.first_byte;
+
+        let mut input = Cursor::new(raw);
+        // this must be succeeded
+        Packet::from_read_bytes(&mut input).unwrap()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

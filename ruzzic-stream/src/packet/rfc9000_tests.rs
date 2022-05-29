@@ -78,7 +78,7 @@ fn protected_client_initial_packet() {
         PROTECTED_CLIENT_INITIAL_PACKET.len()
     );
     eprintln!("{:x?}", initial_packet);
-    let unprotected_header_initial_packet = initial_packet.decrypt(EndpointType::Server, None);
+    let unprotected_header_initial_packet = initial_packet.decrypt(&EndpointType::Server, None);
     eprintln!("{:x?}", unprotected_header_initial_packet);
 }
 
@@ -103,7 +103,7 @@ fn protected_server_initial_packet() {
     );
     eprintln!("{:x?}", initial_packet);
     let unprotected_header_initial_packet = initial_packet.decrypt(
-        EndpointType::Client,
+        &EndpointType::Client,
         Some(vec![0x83, 0x94, 0xc8, 0xf0, 0x3e, 0x51, 0x57, 0x8]),
     );
     eprintln!("{:x?}", unprotected_header_initial_packet);
