@@ -5,5 +5,6 @@ members = [
     "ruzzic-client",
     "ruzzic-server",
     "ruzzic-stream",
+    "ruzzic-tls",
     "ruzzic-http3",
 ]

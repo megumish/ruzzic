@@ -898,6 +898,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruzzic-tls"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "env_logger",
+ "ruzzic-common",
+]
+
+[[package]]
 name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

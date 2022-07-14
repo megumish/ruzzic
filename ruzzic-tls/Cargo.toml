@@ -1,0 +1,13 @@
+[package]
+name = "ruzzic-tls"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ruzzic-common = { path = "../ruzzic-common" }
+byteorder = "1.4"
+
+[dev-dependencies]
+env_logger = "0.9"
