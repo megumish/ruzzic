@@ -4,6 +4,8 @@ use ruzzic_common::read_bytes_to::FromReadBytesWith;
 #[derive(Debug, PartialEq)]
 pub struct Body {
     length: usize,
+    // Detailed analysis of the values will not be done here, but will be done in ruzzic-stream.
+    // This is because the information here is used by quic-transport.
     value: Vec<u8>,
 }
 

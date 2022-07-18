@@ -4,7 +4,7 @@ use crate::extension::Extensions;
 
 use super::HandshakeType;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     certificate_request_context: Vec<u8>,
     extensions: Extensions,

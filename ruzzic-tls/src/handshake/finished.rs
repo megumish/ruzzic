@@ -1,6 +1,6 @@
 use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     verify_data: Vec<u8>,
 }

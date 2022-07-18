@@ -2,7 +2,7 @@ use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
 use crate::{CipherSuite, Extensions};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     random: [u8; 32],
     legacy_session_id: Vec<u8>,

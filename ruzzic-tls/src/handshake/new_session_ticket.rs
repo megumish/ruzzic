@@ -2,7 +2,7 @@ use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
 use crate::Extensions;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     ticket_lifetime: u32,
     ticket_age_add: u32,

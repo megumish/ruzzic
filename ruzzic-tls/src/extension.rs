@@ -17,6 +17,7 @@ mod padding;
 mod post_handshake_auth;
 mod pre_shared_key;
 mod psk_key_exchange_modes;
+mod quic_transport_parameters;
 mod renegotiation_info;
 mod server_certificate_type;
 mod server_name;
@@ -28,7 +29,7 @@ mod supported_groups;
 mod supported_versions;
 mod use_srtp;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Extension {
     ServerName(server_name::Body),
     MaxFragmentLength(max_fragment_length::Body),
@@ -53,6 +54,7 @@ pub enum Extension {
     SignatureAlgorithmsCert(signature_algorithms_cert::Body),
     KeyShare(key_share::Body),
     RenegotiationInfo(renegotiation_info::Body),
+    QuicTransportParameters(quic_transport_parameters::Body),
     Others(others::Body),
 }
 
@@ -90,6 +92,7 @@ impl FromReadBytesWith<HandshakeType> for Extension {
             0x31 => Extension::PostHandshakeAuth(input.read_bytes_to()?),
             0x32 => Extension::SignatureAlgorithmsCert(input.read_bytes_to()?),
             0x33 => Extension::KeyShare(input.read_bytes_to()?),
+            0x39 => Extension::QuicTransportParameters(input.read_bytes_to()?),
             0xff01 => Extension::RenegotiationInfo(input.read_bytes_to()?),
             _ => Extension::Others(input.read_bytes_to()?),
         })
@@ -126,6 +129,7 @@ impl Extension {
             Extension::SignatureAlgorithmsCert(b) => b.size_of(),
             Extension::KeyShare(b) => b.size_of(),
             Extension::RenegotiationInfo(b) => b.size_of(),
+            Extension::QuicTransportParameters(b) => b.size_of(),
             Extension::Others(b) => b.size_of(),
         }
     }

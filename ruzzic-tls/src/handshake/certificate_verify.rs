@@ -2,7 +2,7 @@ use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
 use crate::SignatureScheme;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     algorithm: SignatureScheme,
     signature: Vec<u8>,

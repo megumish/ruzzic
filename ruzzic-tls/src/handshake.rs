@@ -6,15 +6,13 @@ mod certificate_request;
 mod certificate_verify;
 mod client_hello;
 mod encrypted_extensions;
-mod end_of_early_data;
 mod finished;
 mod key_update;
-mod message_hash;
 mod new_session_ticket;
 mod others;
 mod server_hello;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Handshake {
     ClientHello(client_hello::Body),
     ServerHello(server_hello::Body),
@@ -30,7 +28,7 @@ pub enum Handshake {
     Others(others::Body),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HandshakeType {
     ClientHello,
     ServerHello,
@@ -46,7 +44,7 @@ pub enum HandshakeType {
     Others,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct HandshakeContext {
     pub handshake_type: HandshakeType,
 }

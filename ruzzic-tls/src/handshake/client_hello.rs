@@ -8,7 +8,7 @@ use crate::{
 
 use super::HandshakeType;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     legacy_version: LegacyVersion,
     random: [u8; 32],

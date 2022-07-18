@@ -894,6 +894,7 @@ dependencies = [
  "hmac",
  "log",
  "ruzzic-common",
+ "ruzzic-tls",
  "sha2",
 ]
 

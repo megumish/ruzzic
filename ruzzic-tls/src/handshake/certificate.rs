@@ -2,7 +2,7 @@ use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
 use crate::CertificateEntry;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     certificate_request_context: Vec<u8>,
     certificate_list: Vec<CertificateEntry>,

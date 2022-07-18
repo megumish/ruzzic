@@ -17,6 +17,7 @@ hmac = "0.12"
 aes-gcm = "0.9"
 generic-array = "0.14"
 ruzzic-common = { path = "../ruzzic-common" }
+ruzzic-tls = { path = "../ruzzic-tls" }
 log = "0.4"
 
 [dev-dependencies]

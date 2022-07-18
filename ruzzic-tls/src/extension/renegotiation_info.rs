@@ -1,9 +1,10 @@
 use byteorder::{NetworkEndian, ReadBytesExt};
 use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
-    renegotiated_connection: Vec<u8>,
+    length: usize,
+    value: Vec<u8>,
 }
 
 impl FromReadBytesWith<()> for Body {
@@ -11,17 +12,15 @@ impl FromReadBytesWith<()> for Body {
     where
         Self: Sized,
     {
-        let length = input.read_u16::<NetworkEndian>()?;
-        let mut renegotiated_connection = vec![0u8; length as usize];
-        input.read_exact(&mut renegotiated_connection);
-        Ok(Self {
-            renegotiated_connection,
-        })
+        let length = input.read_u16::<NetworkEndian>()? as usize;
+        let mut value = vec![0u8; length as usize];
+        input.read_exact(&mut value)?;
+        Ok(Self { length, value })
     }
 }
 
 impl Body {
     pub(crate) fn size_of(&self) -> usize {
-        1 + self.renegotiated_connection.len()
+        2 + self.length
     }
 }

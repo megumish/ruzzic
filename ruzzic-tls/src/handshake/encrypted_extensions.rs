@@ -2,7 +2,7 @@ use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
 use crate::Extensions;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     extensions: Extensions,
 }

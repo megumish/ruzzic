@@ -1,11 +1,12 @@
+use std::io::Cursor;
+
+use byteorder::{NetworkEndian, ReadBytesExt};
 use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
-use crate::CertificateType;
-
-#[derive(Debug)]
-pub enum Body {
-    Client(Vec<CertificateType>),
-    Server(CertificateType),
+#[derive(Debug, PartialEq)]
+pub struct Body {
+    length: usize,
+    value: Vec<u8>,
 }
 
 impl FromReadBytesWith<()> for Body {
@@ -13,12 +14,15 @@ impl FromReadBytesWith<()> for Body {
     where
         Self: Sized,
     {
-        unimplemented!()
+        let length = input.read_u16::<NetworkEndian>()? as usize;
+        let mut value = vec![0u8; length as usize];
+        input.read_exact(&mut value)?;
+        Ok(Self { length, value })
     }
 }
 
 impl Body {
     pub(crate) fn size_of(&self) -> usize {
-        todo!()
+        return self.length;
     }
 }

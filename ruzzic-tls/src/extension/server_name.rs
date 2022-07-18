@@ -3,19 +3,19 @@ use std::io::{Cursor, Read};
 use byteorder::ReadBytesExt;
 use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     names: Vec<ServerName>,
     total_length: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ServerName {
     name_type: NameType,
     host_name: Option<Vec<u8>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum NameType {
     HostName,
     Unknown(u8),

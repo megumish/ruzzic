@@ -1,13 +1,13 @@
 use byteorder::{NetworkEndian, ReadBytesExt};
 use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     named_curve_list: Vec<NamedCurve>,
     total_length: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum NamedCurve {
     Deprecated(u16),
     Reserved(u16),
@@ -53,6 +53,6 @@ impl FromReadBytesWith<()> for Body {
 
 impl Body {
     pub(crate) fn size_of(&self) -> usize {
-        todo!()
+        2 + self.total_length
     }
 }

@@ -6,7 +6,7 @@ pub mod handshake;
 
 use crate::extension::Extensions;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum CipherSuite {
     TlsAes128GcmSha256,
     TlsAes256GcmSha384,
@@ -39,13 +39,13 @@ impl CipherSuite {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct CertificateEntry {
     certificate: Certificate,
     extension: Extensions,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Certificate {
     X509 {
         cert_data: Vec<u8>,
@@ -56,14 +56,14 @@ enum Certificate {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CertificateType {
     X509,
     OpenPgpReserved,
     RawPublicKey,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum SignatureScheme {
     // RSASSA-PKCS1-v1_5
     RsaPkcs1Sha256,
@@ -93,7 +93,7 @@ enum SignatureScheme {
     Others(u16),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct LegacyVersion(u16);
 
 impl FromReadBytesWith<()> for LegacyVersion {

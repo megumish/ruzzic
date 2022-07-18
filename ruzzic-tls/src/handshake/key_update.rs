@@ -1,11 +1,11 @@
 use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     key_update_request: KeyUpdateRequest,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum KeyUpdateRequest {
     UpdateNotRequested,
     UpdateRequested,

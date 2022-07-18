@@ -3,13 +3,13 @@ use std::io::{Cursor, Read};
 use byteorder::{NetworkEndian, ReadBytesExt};
 use ruzzic_common::read_bytes_to::FromReadBytesWith;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
     authorities: Vec<Authority>,
     total_length: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Authority {
     name: Vec<u8>,
 }
@@ -45,6 +45,6 @@ impl FromReadBytesWith<()> for Body {
 
 impl Body {
     pub(crate) fn size_of(&self) -> usize {
-        self.total_length
+        2 + self.total_length
     }
 }

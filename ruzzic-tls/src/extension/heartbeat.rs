@@ -1,12 +1,15 @@
-use byteorder::ReadBytesExt;
+use std::io::Cursor;
+
+use byteorder::{NetworkEndian, ReadBytesExt};
 use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Body {
-    mode: HeartbeatMode,
+    length: usize,
+    value: HeartbeatMode,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[repr(u8)]
 pub enum HeartbeatMode {
     PeerAllowedToSend,
@@ -19,9 +22,14 @@ impl FromReadBytesWith<()> for Body {
     where
         Self: Sized,
     {
-        Ok(Body {
-            mode: input.read_bytes_to()?,
-        })
+        let length = input.read_u16::<NetworkEndian>()? as usize;
+        let mut input = {
+            let mut buf = vec![0u8; length as usize];
+            input.read_exact(&mut buf)?;
+            Cursor::new(buf)
+        };
+        let value = input.read_bytes_to()?;
+        Ok(Self { length, value })
     }
 }
 
@@ -41,6 +49,6 @@ impl FromReadBytesWith<()> for HeartbeatMode {
 
 impl Body {
     pub(crate) fn size_of(&self) -> usize {
-        1
+        2 + self.length
     }
 }
