@@ -72,7 +72,12 @@ impl Packet {
     }
 
     fn get_header_bytes(&self) -> Vec<u8> {
-        self.raw[..self.raw_length() - self.payload().len()].to_vec()
+        self.raw[..self.meta.raw_length()
+            + match &self.body {
+                PacketBody::Long(lh) => lh.raw_length(),
+            }
+            - self.payload().len()]
+            .to_owned()
     }
 
     fn update_payload(self, payload: PacketPayload) -> Self {
@@ -88,6 +93,7 @@ impl Packet {
         endpoint_type: &EndpointType,
         client_connection_id: Option<Vec<u8>>,
     ) -> Self {
+        eprintln!("{self:X?}");
         let initial_salt = Into::<QuicVersion>::into(self.version()).initial_salt();
         let client_connection_id = client_connection_id.map(|v| ConnectionID(v));
 
@@ -114,6 +120,7 @@ impl Packet {
         let packet_number_bytes = packet_number.0.to_be_bytes();
         let packet_header = unprotected_packet.get_header_bytes();
 
+        eprintln!("{unprotected_packet:X?}");
         let decrypted_payload = decrypt_payload(
             unprotected_packet.payload(),
             &packet_number_bytes,
@@ -150,8 +157,13 @@ fn decrypt_payload(
     let aes = Aes128Gcm::new(&GenericArray::clone_from_slice(&decryption_kit.key));
 
     // TODO: handle errors
-    aes.decrypt(&GenericArray::from_slice(&nonce), aead_payload)
-        .unwrap()
+    match aes.decrypt(&GenericArray::from_slice(&nonce), aead_payload) {
+        Err(e) => {
+            eprintln!("{e:?}");
+            panic!()
+        }
+        Ok(result) => result,
+    }
 }
 
 fn hkdf_extract(salt: &[u8], ikm: &[u8]) -> Vec<u8> {
@@ -295,9 +307,11 @@ impl HeaderRemovalKit {
 
         let mask = {
             let mut mask = GenericArray::clone_from_slice(&sample);
-            Aes128::new(&GenericArray::from_slice(hp)).encrypt_block(&mut mask);
+            Aes128::new_from_slice(hp).unwrap().encrypt_block(&mut mask);
             mask
-        };
+        }
+        .to_vec();
+        eprintln!("{mask:?}");
 
         let unprotected_first_byte = match body {
             PacketBody::Long(_) => raw[0] ^ (mask[0] & 0x0f),
@@ -306,11 +320,12 @@ impl HeaderRemovalKit {
         };
 
         let packet_number_length = (unprotected_first_byte & 0x03) as usize + 1;
+        eprintln!("{packet_number_length:?}");
 
         Self {
             packet_number_offset,
             packet_number_length,
-            mask: mask.to_vec(),
+            mask: mask,
             first_byte: unprotected_first_byte,
         }
     }

@@ -13,7 +13,7 @@ impl FromReadBytesWith<()> for ConnectionID {
 }
 
 impl ConnectionID {
-    pub(crate) fn to_vec(&self) -> Vec<u8> {
+    pub fn to_vec(&self) -> Vec<u8> {
         self.0.clone()
     }
 

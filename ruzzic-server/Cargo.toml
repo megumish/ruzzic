@@ -7,8 +7,11 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-tokio-stream = { version = "0.1" }
 ruzzic = { path = "../ruzzic" }
 ruzzic-common = { path = "../ruzzic-common" }
 ruzzic-http3 = { path = "../ruzzic-http3"}
+ruzzic-stream = { path = "../ruzzic-stream"}
 anyhow = "1"
+tokio-util = { version = "0.7.3", features = ["net", "codec"] }
+tokio-stream = "0.1.9"
+bytes = "1.1.0"
