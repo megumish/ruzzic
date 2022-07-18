@@ -77,6 +77,15 @@ impl Body {
             }
             .raw_length()
     }
+
+    pub(crate) fn update_payload(self, payload: PacketPayload) -> Self {
+        Self {
+            connection_id_pair: self.connection_id_pair,
+            token: self.token,
+            packet_number: self.packet_number,
+            packet_payload: payload,
+        }
+    }
 }
 
 #[cfg(test)]

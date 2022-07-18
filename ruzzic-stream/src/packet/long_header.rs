@@ -6,7 +6,7 @@ use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWi
 
 use crate::{connection::ConnectionID, Version};
 
-use super::{packet_meta::PacketMeta, PacketNumber};
+use super::{packet_meta::PacketMeta, PacketNumber, PacketPayload};
 
 pub mod initial;
 pub mod version_negotiation;
@@ -74,6 +74,13 @@ impl LongHeader {
         match self {
             LongHeader::VersionNegotiation(b) => b.raw_length(),
             LongHeader::Initial(b) => b.raw_length(),
+        }
+    }
+
+    pub(crate) fn update_payload(self, payload: PacketPayload) -> Self {
+        match self {
+            lh @ LongHeader::VersionNegotiation(_) => lh,
+            LongHeader::Initial(b) => LongHeader::Initial(b.update_payload(payload)),
         }
     }
 }

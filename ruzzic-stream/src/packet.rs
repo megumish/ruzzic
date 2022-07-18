@@ -75,11 +75,19 @@ impl Packet {
         self.raw[..self.raw_length() - self.payload().len()].to_vec()
     }
 
+    fn update_payload(self, payload: PacketPayload) -> Self {
+        Self {
+            meta: self.meta,
+            body: self.body.update_payload(payload),
+            raw: self.raw,
+        }
+    }
+
     pub fn decrypt(
         &self,
         endpoint_type: &EndpointType,
         client_connection_id: Option<Vec<u8>>,
-    ) -> Packet {
+    ) -> Self {
         let initial_salt = Into::<QuicVersion>::into(self.version()).initial_salt();
         let client_connection_id = client_connection_id.map(|v| ConnectionID(v));
 
@@ -106,17 +114,14 @@ impl Packet {
         let packet_number_bytes = packet_number.0.to_be_bytes();
         let packet_header = unprotected_packet.get_header_bytes();
 
-        let decrypted = decrypt_payload(
+        let decrypted_payload = decrypt_payload(
             unprotected_packet.payload(),
             &packet_number_bytes,
             decryption_kit,
             &packet_header,
         );
 
-        let mut frames_input = Cursor::new(decrypted);
-        let frames: Frames = frames_input.read_bytes_to().unwrap();
-        log::debug!("frames: {frames:?}");
-        todo!()
+        unprotected_packet.update_payload(PacketPayload::from_vec(decrypted_payload))
     }
 }
 
@@ -363,6 +368,13 @@ impl PacketBody {
             _ => unimplemented!(),
         }
     }
+
+    fn update_payload(self, payload: PacketPayload) -> Self {
+        match self {
+            PacketBody::Long(lh) => PacketBody::Long(lh.update_payload(payload)),
+            _ => unimplemented!(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -453,3 +465,8 @@ mod neqo_tests;
 
 #[cfg(test)]
 mod rfc9000_tests;
+impl PacketPayload {
+    pub(crate) fn from_vec(decrypted_payload: Vec<u8>) -> PacketPayload {
+        PacketPayload(decrypted_payload)
+    }
+}
