@@ -1,10 +1,4 @@
 [workspace]
 members = [
-    "ruzzic",
-    "ruzzic-common",
-    "ruzzic-client",
-    "ruzzic-server",
-    "ruzzic-stream",
-    "ruzzic-tls",
-    "ruzzic-http3",
+    "crates/*",
 ]
