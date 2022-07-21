@@ -36,7 +36,10 @@ fn neqo_client_initial_packet() {
         initial_packet.raw_length(),
         NEQO_CLIENT_INITIAL_PACKET.len()
     );
-    eprintln!("{:#x?}", initial_packet);
+    eprintln!("{:x?}", initial_packet);
+    let mut payload_input = Cursor::new(initial_packet.payload());
+    let frames: Frames = payload_input.read_bytes_to().unwrap();
+    eprintln!("{frames:x?}");
 }
 
 #[test]
@@ -56,7 +59,10 @@ fn neqo_server_initial_packet() {
         initial_packet.raw_length(),
         NEQO_SERVER_INITIAL_PACKET.len()
     );
-    eprintln!("{:#x?}", initial_packet);
+    eprintln!("{:x?}", initial_packet);
+    let mut payload_input = Cursor::new(initial_packet.payload());
+    let frames: Frames = payload_input.read_bytes_to().unwrap();
+    eprintln!("{frames:x?}");
 }
 
 #[test]

@@ -75,14 +75,15 @@ fn protected_client_initial_packet() {
         initial_packet.raw_length(),
         PROTECTED_CLIENT_INITIAL_PACKET.len()
     );
-    eprintln!("{:x?}", initial_packet);
-    let unprotected_header_initial_packet = initial_packet.decrypt(&EndpointType::Server, None);
+    let unprotected_header_initial_packet = initial_packet.decrypt(&server_state);
     eprintln!("{:x?}", unprotected_header_initial_packet);
+    let mut payload_input = Cursor::new(unprotected_header_initial_packet.payload());
+    let frames: Frames = payload_input.read_bytes_to().unwrap();
+    eprintln!("{frames:x?}");
 }
 
 #[test]
 fn protected_server_initial_packet() {
-    env_logger::init();
     const PROTECTED_SERVER_INITIAL_PACKET: &[u8] = &[
         207, 0, 0, 0, 1, 0, 8, 240, 103, 165, 80, 42, 66, 98, 181, 0, 64, 117, 192, 217, 90, 72,
         44, 208, 153, 28, 210, 91, 10, 172, 64, 106, 88, 22, 182, 57, 65, 0, 243, 122, 28, 105,
@@ -105,4 +106,7 @@ fn protected_server_initial_packet() {
         Some(vec![0x83, 0x94, 0xc8, 0xf0, 0x3e, 0x51, 0x57, 0x8]),
     );
     eprintln!("{:x?}", unprotected_header_initial_packet);
+    let mut payload_input = Cursor::new(unprotected_header_initial_packet.payload());
+    let frames: Frames = payload_input.read_bytes_to().unwrap();
+    eprintln!("{frames:x?}");
 }

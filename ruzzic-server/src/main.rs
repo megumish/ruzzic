@@ -1,6 +1,7 @@
-use std::io::Cursor;
+use std::{io::Cursor, pin::Pin};
 
-use bytes::{Buf, BytesMut};
+use bytes::{Buf, BufMut, BytesMut};
+use futures_sink::Sink;
 use ruzzic_common::{read_bytes_to::FromReadBytes, EndpointType};
 use ruzzic_stream::packet::Packet;
 use tokio::net::UdpSocket;
@@ -16,7 +17,11 @@ async fn main() -> anyhow::Result<()> {
     let codec = MeguCodec;
     let mut udpframed = UdpFramed::new(socket, codec);
     let (packet, addr) = udpframed.next().await.unwrap()?;
-    println!("{:?}", packet);
+    println!("{packet:?}");
+    {
+        let mut udpframed = Pin::new(&mut udpframed);
+        udpframed.start_send((packet, addr));
+    }
 
     Ok(())
 }
@@ -41,5 +46,13 @@ impl Decoder for MeguCodec {
         let packet = packet.decrypt(&EndpointType::Server, None);
 
         Ok(Some(packet))
+    }
+}
+
+impl Encoder<Packet> for MeguCodec {
+    type Error = anyhow::Error;
+
+    fn encode(&mut self, packet: Packet, destination: &mut BytesMut) -> Result<(), Self::Error> {
+        Ok(())
     }
 }

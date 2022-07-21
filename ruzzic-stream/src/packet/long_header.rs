@@ -4,7 +4,11 @@ use bitvec::prelude::*;
 use byteorder::{BigEndian, ReadBytesExt};
 use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo, ReadBytesToWith};
 
-use crate::{connection::ConnectionID, Version};
+use crate::{
+    connection::{Connection, ConnectionID},
+    endpoint_state::{self, EndpointState},
+    Version,
+};
 
 use super::{packet_meta::PacketMeta, PacketNumber, PacketPayload};
 
@@ -70,10 +74,12 @@ impl LongHeader {
         }
     }
 
-    pub(super) fn raw_length(&self) -> usize {
+    pub(super) fn raw_length(&self, packet_number_length: Option<usize>) -> usize {
         match self {
             LongHeader::VersionNegotiation(b) => b.raw_length(),
-            LongHeader::Initial(b) => b.raw_length(),
+            LongHeader::Initial(b) => {
+                b.raw_length(packet_number_length.expect("need packet number length"))
+            }
         }
     }
 
@@ -82,6 +88,10 @@ impl LongHeader {
             lh @ LongHeader::VersionNegotiation(_) => lh,
             LongHeader::Initial(b) => LongHeader::Initial(b.update_payload(payload)),
         }
+    }
+
+    pub(crate) fn new_initial(connection: &Connection, endpoint_state: &EndpointState) -> Self {
+        LongHeader::Initial(initial::Body::new(connection, endpoint_state))
     }
 }
 

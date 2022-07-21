@@ -5,6 +5,7 @@ use ruzzic_common::{read_bytes_to::FromReadBytesWith, QuicVersion};
 use std::{io::Cursor, mem::size_of, slice::from_raw_parts};
 
 mod connection;
+mod endpoint_state;
 mod frame;
 pub mod packet;
 mod stream;
@@ -136,6 +137,10 @@ impl Token {
     pub(crate) fn raw_length(&self) -> usize {
         let token_length = self.0.len();
         size_of_varint(token_length as u64) + token_length
+    }
+
+    pub(crate) fn empty() -> Self {
+        Self(Vec::new())
     }
 }
 

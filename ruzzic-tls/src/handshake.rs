@@ -59,7 +59,9 @@ impl FromReadBytesWith<()> for Handshake {
             HandshakeType::ClientHello => {
                 Handshake::ClientHello(input.read_bytes_to_with(handshake_type)?)
             }
-            HandshakeType::ServerHello => Handshake::ServerHello(input.read_bytes_to()?),
+            HandshakeType::ServerHello => {
+                Handshake::ServerHello(input.read_bytes_to_with(handshake_type)?)
+            }
             HandshakeType::NewSessionTicket => Handshake::NewSessionTicket(input.read_bytes_to()?),
             HandshakeType::EndOfEarlyData => Handshake::EndOfEarlyData,
             HandshakeType::EncryptedExtensions => {

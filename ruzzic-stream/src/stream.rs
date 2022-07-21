@@ -1,3 +1,9 @@
+use crate::{
+    connection::ConnectionID,
+    packet::{PacketNumber, PacketPayload},
+    Token,
+};
+
 #[derive(Debug, PartialEq)]
 pub struct StreamID(pub(crate) u64);
 

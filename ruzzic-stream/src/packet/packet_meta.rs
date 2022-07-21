@@ -1,7 +1,7 @@
 use bitvec::prelude::*;
 use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo};
 
-use crate::Version;
+use crate::{connection::Connection, endpoint_state::EndpointState, Version};
 
 use super::{long_header, PacketBodyType};
 
@@ -79,6 +79,22 @@ impl FirstByte {
     fn raw_length(&self) -> usize {
         1
     }
+
+    fn new_initial(endpoint_state: &EndpointState) -> Self {
+        let packet_number_length = endpoint_state.next_packet_number().length_in_header();
+
+        let mut first_byte = bitarr![Msb0, u8;
+        1, // is long header
+        1, // fixed bit
+        0, 0, // long packet type: 0x00(initial)
+        0, 0, // reserved bits
+        0, 0,// packet number length (fill it after soon)
+        ];
+        first_byte[8 /* one byte bits-length */ - 2 /* size of packet number length */..]
+            .store(packet_number_length);
+
+        Self(first_byte)
+    }
 }
 
 impl PacketMeta {
@@ -100,5 +116,13 @@ impl PacketMeta {
 
     pub(crate) fn raw_length(&self) -> usize {
         self.first_byte.raw_length() + self.version.raw_length()
+    }
+
+    pub(crate) fn new_initial(connection: &Connection, endpoint_state: &EndpointState) -> Self {
+        let first_byte = FirstByte::new_initial(endpoint_state);
+        Self {
+            first_byte,
+            version: connection.version().clone(),
+        }
     }
 }

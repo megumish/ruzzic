@@ -4,8 +4,9 @@ use ruzzic_common::read_bytes_to::{FromReadBytesWith, ReadBytesTo};
 
 use super::ConnectionIDPair;
 use crate::{
-    connection::ConnectionID,
-    packet::{packet_meta::PacketMeta, PacketData, PacketNumber, PacketPayload},
+    connection::{Connection, ConnectionID},
+    endpoint_state::EndpointState,
+    packet::{self, packet_meta::PacketMeta, PacketData, PacketNumber, PacketPayload},
     read_varint, Token,
 };
 
@@ -68,14 +69,15 @@ impl Body {
         self.packet_number = packet_number;
     }
 
-    pub(super) fn raw_length(&self) -> usize {
-        self.connection_id_pair.raw_length()
-            + self.token.raw_length()
-            + PacketData {
-                packet_number: &self.packet_number,
-                packet_payload: &self.packet_payload,
-            }
-            .raw_length()
+    pub(super) fn raw_length(&self, packet_number_length: usize) -> usize {
+        let connection_id_pair_length = self.connection_id_pair.raw_length();
+        let token_length = self.token.raw_length();
+        let packet_data_length = PacketData {
+            packet_number: &self.packet_number,
+            packet_payload: &self.packet_payload,
+        }
+        .raw_length(packet_number_length);
+        connection_id_pair_length + token_length + packet_data_length
     }
 
     pub(crate) fn update_payload(self, payload: PacketPayload) -> Self {
@@ -84,6 +86,23 @@ impl Body {
             token: self.token,
             packet_number: self.packet_number,
             packet_payload: payload,
+        }
+    }
+
+    pub(crate) fn new(connection: &Connection, endpoint_state: &EndpointState) -> Self {
+        let connection_id_pair = ConnectionIDPair {
+            destination_id: connection.destination_connection_id().to_vec(),
+            source_id: connection.source_connection_id().to_vec(),
+        };
+        let token = connection.token().clone();
+        let packet_number = endpoint_state.next_packet_number().clone();
+        let packet_payload = connection.next_packet_payload();
+
+        Self {
+            connection_id_pair,
+            token,
+            packet_number,
+            packet_payload,
         }
     }
 }

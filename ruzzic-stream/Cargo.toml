@@ -19,6 +19,7 @@ generic-array = "0.14"
 ruzzic-common = { path = "../ruzzic-common" }
 ruzzic-tls = { path = "../ruzzic-tls" }
 log = "0.4"
+rand = "0.8.5"
 
 [dev-dependencies]
 env_logger = "0.9"

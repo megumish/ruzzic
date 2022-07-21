@@ -118,6 +118,7 @@ impl FromReadBytesWith<()> for Frames {
         Self: Sized,
     {
         let mut frames = Vec::new();
+        // TODO: shouldn't judge if it's the end of Error or not.
         while let Ok(frame) = input.read_bytes_to() {
             frames.push(frame);
         }

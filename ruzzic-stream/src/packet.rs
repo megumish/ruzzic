@@ -16,7 +16,12 @@ use ruzzic_common::{
 };
 use sha2::{Digest, Sha256};
 
-use crate::{connection::ConnectionID, frame::Frames, size_of_varint, Version};
+use crate::{
+    connection::{Connection, ConnectionID},
+    endpoint_state::EndpointState,
+    frame::Frames,
+    size_of_varint, Version,
+};
 
 use self::{long_header::LongHeader, packet_meta::PacketMeta};
 
@@ -26,6 +31,7 @@ pub mod packet_meta;
 #[derive(Debug, PartialEq)]
 pub struct Packet {
     meta: PacketMeta,
+    // Rather than Packet Body, something other than Packet Meta is the correct expression.
     body: PacketBody,
     raw: Vec<u8>,
 }
@@ -72,12 +78,12 @@ impl Packet {
     }
 
     fn get_header_bytes(&self) -> Vec<u8> {
-        self.raw[..self.meta.raw_length()
-            + match &self.body {
-                PacketBody::Long(lh) => lh.raw_length(),
-            }
-            - self.payload().len()]
-            .to_owned()
+        let packet_number_length = self.meta.packet_number_length();
+        let packet_body_length = self.body.raw_length(Some(packet_number_length as usize));
+        let packet_meta_length = self.meta.raw_length();
+        let packet_payload_length = self.payload().len();
+        let header_length = packet_meta_length + (packet_body_length - packet_payload_length);
+        self.raw[..header_length].to_owned()
     }
 
     fn update_payload(self, payload: PacketPayload) -> Self {
@@ -88,19 +94,25 @@ impl Packet {
         }
     }
 
-    pub fn decrypt(
-        &self,
-        endpoint_type: &EndpointType,
-        client_connection_id: Option<Vec<u8>>,
-    ) -> Self {
-        eprintln!("{self:X?}");
+    fn new_initial(connection: &Connection, endpoint_state: &EndpointState) -> Self {
+        let unprotected_packet = Self::new_unprotected_initial(connection, endpoint_state);
+        unprotected_packet.encrypt(connection, endpoint_state)
+    }
+
+    fn new_unprotected_initial(connection: &Connection, endpoint_state: &EndpointState) -> Self {
+        let meta = PacketMeta::new_initial(connection, endpoint_state);
+        let body = PacketBody::new_initial(connection, endpoint_state);
+        let raw = Vec::new();
+        Self { meta, body, raw }
+    }
+
+    pub fn decrypt(&self, endpoint_state: &EndpointState) -> Self {
         let initial_salt = Into::<QuicVersion>::into(self.version()).initial_salt();
-        let client_connection_id = client_connection_id.map(|v| ConnectionID(v));
 
         let decryption_kit = DecryptionKit::new(
             &initial_salt,
-            client_connection_id.unwrap_or(self.destination_connection_id()),
-            endpoint_type,
+            self.client_id(endpoint_state),
+            endpoint_state.type_is(),
         );
         log::debug!("Decryption kit: {:x?}", decryption_kit);
 
@@ -120,7 +132,6 @@ impl Packet {
         let packet_number_bytes = packet_number.0.to_be_bytes();
         let packet_header = unprotected_packet.get_header_bytes();
 
-        eprintln!("{unprotected_packet:X?}");
         let decrypted_payload = decrypt_payload(
             unprotected_packet.payload(),
             &packet_number_bytes,
@@ -129,6 +140,16 @@ impl Packet {
         );
 
         unprotected_packet.update_payload(PacketPayload::from_vec(decrypted_payload))
+    }
+
+    fn encrypt(self, connection: &Connection, endpoint_state: &EndpointState) -> Self {
+        todo!()
+    }
+
+    pub(crate) fn client_id(&self, endpoint_state: &EndpointState) -> &ConnectionID {
+        match endpoint_state.type_is() {
+            EndpointType
+        }
     }
 }
 
@@ -156,11 +177,10 @@ fn decrypt_payload(
     // Only considered during InitialPacket
     let aes = Aes128Gcm::new(&GenericArray::clone_from_slice(&decryption_kit.key));
 
-    // TODO: handle errors
+    // TODO: erroro handling
     match aes.decrypt(&GenericArray::from_slice(&nonce), aead_payload) {
-        Err(e) => {
-            eprintln!("{e:?}");
-            panic!()
+        Err(_) => {
+            panic!("Crypto Error. Details are not displayed to prevent attacks using error information.")
         }
         Ok(result) => result,
     }
@@ -236,7 +256,11 @@ struct DecryptionKit {
 }
 
 impl DecryptionKit {
-    fn new(initial_salt: &[u8], connection_id: ConnectionID, endpoint_type: &EndpointType) -> Self {
+    fn new(
+        initial_salt: &[u8],
+        connection_id: &ConnectionID,
+        endpoint_type: &EndpointType,
+    ) -> Self {
         let (key, iv, hp) = match endpoint_type {
             EndpointType::Server => {
                 // server received a client packet
@@ -254,7 +278,7 @@ impl DecryptionKit {
 
 fn new_decryption_kit(
     initial_salt: &[u8],
-    connection_id: ConnectionID,
+    connection_id: &ConnectionID,
     label: &[u8],
 ) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     log::debug!("initial_salt: {initial_salt:x?}");
@@ -311,7 +335,6 @@ impl HeaderRemovalKit {
             mask
         }
         .to_vec();
-        eprintln!("{mask:?}");
 
         let unprotected_first_byte = match body {
             PacketBody::Long(_) => raw[0] ^ (mask[0] & 0x0f),
@@ -320,7 +343,6 @@ impl HeaderRemovalKit {
         };
 
         let packet_number_length = (unprotected_first_byte & 0x03) as usize + 1;
-        eprintln!("{packet_number_length:?}");
 
         Self {
             packet_number_offset,
@@ -370,9 +392,9 @@ impl PacketBody {
         }
     }
 
-    fn raw_length(&self) -> usize {
+    fn raw_length(&self, packet_number_length: Option<usize>) -> usize {
         match self {
-            PacketBody::Long(lh) => lh.raw_length(),
+            PacketBody::Long(lh) => lh.raw_length(packet_number_length),
             _ => unimplemented!(),
         }
     }
@@ -389,6 +411,10 @@ impl PacketBody {
             PacketBody::Long(lh) => PacketBody::Long(lh.update_payload(payload)),
             _ => unimplemented!(),
         }
+    }
+
+    fn new_initial(connection: &Connection, endpoint_state: &EndpointState) -> Self {
+        Self::Long(LongHeader::new_initial(connection, endpoint_state))
     }
 }
 
@@ -436,6 +462,27 @@ impl PacketNumber {
             BigEndian::read_uint(&buf, length as usize) as u32
         ))
     }
+
+    pub(crate) fn length_in_header(&self) -> u8 {
+        if self.0 < 0xff {
+            0
+        } else if self.0 < 0xffff {
+            1
+        } else if self.0 < 0xffffffff {
+            2
+        } else if self.0 < 1 << 62 - 1 {
+            3
+        } else {
+            unreachable!(
+                "maximum packet number size is 2^62 - 1 but this is {}",
+                self.0
+            )
+        }
+    }
+
+    pub(crate) fn zero() -> Self {
+        Self(0)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -458,19 +505,12 @@ struct PacketData<'a> {
 }
 
 impl<'a> PacketData<'a> {
-    fn raw_length(&self) -> usize {
+    fn raw_length(&self, packet_number_length: usize) -> usize {
         let Self {
             packet_number,
             packet_payload,
         } = self;
-        let packet_data_length = packet_payload.0.len()
-            + if packet_number.0 <= 0xff {
-                1
-            } else if packet_number.0 <= 0xffff {
-                2
-            } else {
-                4
-            };
+        let packet_data_length = packet_payload.0.len() + packet_number_length;
         size_of_varint(packet_data_length as u64) + packet_data_length
     }
 }
@@ -481,7 +521,7 @@ mod neqo_tests;
 #[cfg(test)]
 mod rfc9000_tests;
 impl PacketPayload {
-    pub(crate) fn from_vec(decrypted_payload: Vec<u8>) -> PacketPayload {
-        PacketPayload(decrypted_payload)
+    pub(crate) fn from_vec(vec: Vec<u8>) -> PacketPayload {
+        PacketPayload(vec)
     }
 }
