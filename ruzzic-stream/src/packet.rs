@@ -63,14 +63,14 @@ impl Packet {
         self.meta.version()
     }
 
-    pub fn destination_connection_id(&self) -> ConnectionID {
+    pub fn destination_connection_id(&self) -> Box<ConnectionID> {
         match &self.body {
             PacketBody::Long(b) => b.destination_connection_id(),
             _ => unimplemented!(),
         }
     }
 
-    pub fn source_connection_id(&self) -> Option<ConnectionID> {
+    pub fn source_connection_id(&self) -> Option<Box<ConnectionID>> {
         match &self.body {
             PacketBody::Long(b) => Some(b.source_connection_id()),
             _ => unimplemented!(),
@@ -107,48 +107,54 @@ impl Packet {
     }
 
     pub fn decrypt(&self, endpoint_state: &EndpointState) -> Self {
-        let initial_salt = Into::<QuicVersion>::into(self.version()).initial_salt();
+        todo!()
+        // let initial_salt = Into::<QuicVersion>::into(self.version()).initial_salt();
 
-        let decryption_kit = DecryptionKit::new(
-            &initial_salt,
-            self.client_id(endpoint_state),
-            endpoint_state.type_is(),
-        );
-        log::debug!("Decryption kit: {:x?}", decryption_kit);
+        // let decryption_kit = DecryptionKit::new(
+        //     &initial_salt,
+        //     self.client_id(endpoint_state),
+        //     endpoint_state.type_is(),
+        // );
+        // log::debug!("Decryption kit: {:x?}", decryption_kit);
 
-        let header_removal_kit = HeaderRemovalKit::new(
-            self.destination_connection_id(),
-            self.source_connection_id(),
-            self.payload(),
-            &self.body,
-            &self.raw,
-            &decryption_kit.hp,
-            128 / 8, // AES_128_GCM key length
-        );
+        // let header_removal_kit = HeaderRemovalKit::new(
+        //     self.destination_connection_id(),
+        //     self.source_connection_id(),
+        //     self.payload(),
+        //     &self.body,
+        //     &self.raw,
+        //     &decryption_kit.hp,
+        //     128 / 8, // AES_128_GCM key length
+        // );
 
-        let unprotected_packet = header_removal_kit.remove_protection(&self.raw);
+        // let unprotected_packet = header_removal_kit.remove_protection(&self.raw);
 
-        let packet_number = unprotected_packet.body.packet_number();
-        let packet_number_bytes = packet_number.0.to_be_bytes();
-        let packet_header = unprotected_packet.get_header_bytes();
+        // let packet_number = unprotected_packet.body.packet_number();
+        // let packet_number_bytes = packet_number.0.to_be_bytes();
+        // let packet_header = unprotected_packet.get_header_bytes();
 
-        let decrypted_payload = decrypt_payload(
-            unprotected_packet.payload(),
-            &packet_number_bytes,
-            decryption_kit,
-            &packet_header,
-        );
+        // let decrypted_payload = decrypt_payload(
+        //     unprotected_packet.payload(),
+        //     &packet_number_bytes,
+        //     decryption_kit,
+        //     &packet_header,
+        // );
 
-        unprotected_packet.update_payload(PacketPayload::from_vec(decrypted_payload))
+        // unprotected_packet.update_payload(PacketPayload::from_vec(decrypted_payload))
     }
 
     fn encrypt(self, connection: &Connection, endpoint_state: &EndpointState) -> Self {
         todo!()
     }
 
-    pub(crate) fn client_id(&self, endpoint_state: &EndpointState) -> &ConnectionID {
+    pub(crate) fn client_id(
+        &self,
+        connection: &Connection,
+        endpoint_state: &EndpointState,
+    ) -> Option<Box<ConnectionID>> {
         match endpoint_state.type_is() {
-            EndpointType
+            EndpointType::Client => self.source_connection_id(),
+            EndpointType::Server => Some(self.destination_connection_id()),
         }
     }
 }
@@ -399,7 +405,7 @@ impl PacketBody {
         }
     }
 
-    fn destination_connection_id(&self) -> ConnectionID {
+    fn destination_connection_id(&self) -> Box<ConnectionID> {
         match self {
             PacketBody::Long(lh) => lh.destination_connection_id(),
             _ => unimplemented!(),

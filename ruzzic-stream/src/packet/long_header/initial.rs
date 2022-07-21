@@ -49,12 +49,14 @@ impl Body {
         &self.packet_payload.0
     }
 
-    pub(super) fn destination_connection_id(&self) -> ConnectionID {
-        ConnectionID(self.connection_id_pair.destination_id.clone())
+    pub(super) fn destination_connection_id(&self) -> Box<ConnectionID> {
+        Box::new(ConnectionID(
+            self.connection_id_pair.destination_id.to_vec(),
+        ))
     }
 
-    pub(super) fn source_connection_id(&self) -> ConnectionID {
-        ConnectionID(self.connection_id_pair.source_id.clone())
+    pub(super) fn source_connection_id(&self) -> Box<ConnectionID> {
+        Box::new(ConnectionID(self.connection_id_pair.source_id.to_vec()))
     }
 
     pub(crate) fn token_raw_length(&self) -> usize {

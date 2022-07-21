@@ -43,7 +43,8 @@ impl Decoder for MeguCodec {
         };
         src.advance(packet.raw_length());
 
-        let packet = packet.decrypt(&EndpointType::Server, None);
+        //let packet = packet.decrypt(&EndpointType::Server, None);
+        todo!();
 
         Ok(Some(packet))
     }

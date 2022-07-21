@@ -77,7 +77,7 @@ impl Decoder for RuzzicTokioCodec {
             }
         };
 
-        let packet = packet.decrypt(&EndpointType::Server, None);
+        //let packet = packet.decrypt(&EndpointType::Server, None);
 
         Ok(None)
     }

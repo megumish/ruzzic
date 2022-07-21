@@ -30,12 +30,12 @@ impl Body {
         &[]
     }
 
-    pub(super) fn destination_connection_id(&self) -> ConnectionID {
-        ConnectionID(self.connection_id_pair.destination_id.clone())
+    pub(super) fn destination_connection_id(&self) -> Box<ConnectionID> {
+        Box::new(ConnectionID(self.connection_id_pair.destination_id.clone()))
     }
 
-    pub(super) fn source_connection_id(&self) -> ConnectionID {
-        ConnectionID(self.connection_id_pair.source_id.clone())
+    pub(super) fn source_connection_id(&self) -> Box<ConnectionID> {
+        Box::new(ConnectionID(self.connection_id_pair.source_id.clone()))
     }
 
     pub(super) fn raw_length(&self) -> usize {

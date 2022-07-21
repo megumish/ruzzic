@@ -1,4 +1,4 @@
-use std::{cell::Ref, sync::Arc};
+use std::{cell::Ref, ops::Deref, sync::Arc};
 
 use rand::{prelude::StdRng, Fill, SeedableRng};
 use ruzzic_common::{read_bytes_to::FromReadBytesWith, EndpointType};
@@ -65,10 +65,8 @@ pub struct Connection {
 
 impl Connection {
     pub fn new_with_packet(version: Version, packet: Packet) -> Self {
-        let destination_connection_id = packet.destination_connection_id().clone();
-        let source_connection_id = packet
-            .source_connection_id()
-            .unwrap_or(ConnectionID::random());
+        let destination_connection_id = *packet.destination_connection_id().clone();
+        let source_connection_id = *packet.source_connection_id().unwrap();
         Connection {
             version,
             destination_connection_id,

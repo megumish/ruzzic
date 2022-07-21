@@ -53,14 +53,14 @@ impl LongHeader {
         }
     }
 
-    pub(super) fn destination_connection_id(&self) -> ConnectionID {
+    pub(super) fn destination_connection_id(&self) -> Box<ConnectionID> {
         match self {
             LongHeader::VersionNegotiation(b) => b.destination_connection_id(),
             LongHeader::Initial(b) => b.destination_connection_id(),
         }
     }
 
-    pub(super) fn source_connection_id(&self) -> ConnectionID {
+    pub(super) fn source_connection_id(&self) -> Box<ConnectionID> {
         match self {
             LongHeader::VersionNegotiation(b) => b.source_connection_id(),
             LongHeader::Initial(b) => b.source_connection_id(),
