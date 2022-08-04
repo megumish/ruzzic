@@ -914,6 +914,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruzzic-packet"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "ruzzic-common",
+ "thiserror",
+]
+
+[[package]]
 name = "ruzzic-server"
 version = "0.1.0"
 dependencies = [
