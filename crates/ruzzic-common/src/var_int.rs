@@ -1,25 +1,20 @@
-use crate::next_bytes::NextBytes;
-
 pub struct VarInt(u64);
 
 impl VarInt {
-    pub fn parse<T, E>(
-        buf: T,
-        offset: &mut usize,
-        unexpected_end_error: &impl Fn(usize) -> E,
-    ) -> Result<VarInt, E>
+    #[cfg(feature = "std")]
+    pub fn parse_and_get_raw_length<T>(buf: T, offset: usize) -> Result<(VarInt, usize), ParseError>
     where
         T: AsRef<[u8]>,
     {
         let buf = buf.as_ref();
-        let mut temp_offset = offset.clone();
-        let top_byte = buf.next_byte(&mut 0, unexpected_end_error)?;
-        let length = 1 << (top_byte >> 6);
+        let top_byte = buf.get(offset).ok_or(ParseError::UnexpectedEnd(offset))?;
+        let length: usize = 1 << (top_byte >> 6);
         let mut value = 0u64;
-        for mut i in 0..length {
-            value = (value << 8) + buf.next_byte(&mut i, unexpected_end_error)? as u64;
+        for _ in 0..length {
+            value =
+                (value << 8) + *buf.get(offset).ok_or(ParseError::UnexpectedEnd(offset))? as u64;
         }
-        Ok(VarInt(value))
+        Ok((VarInt(value), length))
     }
 
     pub fn u64(&self) -> u64 {
@@ -35,4 +30,9 @@ impl VarInt {
             panic!("unsupported size");
         }
     }
+}
+
+#[cfg(feature = "std")]
+pub enum ParseError {
+    UnexpectedEnd(usize),
 }

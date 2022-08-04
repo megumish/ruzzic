@@ -1,8 +1,6 @@
-use crate::{initial::InitialPacket, long_header::LongHeaderPacket, short_header::OneRttPacket};
+use crate::packet::long_header::{initial::InitialPacket, LongHeaderPacket};
 
 pub enum PacketKind<'a> {
     LongHeader(LongHeaderPacket<'a>),
     Initial(InitialPacket<'a>),
-
-    OneRtt(OneRttPacket<'a>),
 }

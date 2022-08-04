@@ -902,6 +902,9 @@ dependencies = [
 [[package]]
 name = "ruzzic-common"
 version = "0.1.0"
+dependencies = [
+ "thiserror",
+]
 
 [[package]]
 name = "ruzzic-http3"
@@ -917,7 +920,6 @@ dependencies = [
 name = "ruzzic-packet"
 version = "0.1.0"
 dependencies = [
- "byteorder",
  "ruzzic-common",
  "thiserror",
 ]

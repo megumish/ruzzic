@@ -5,6 +5,7 @@ pub enum QuicVersion {
     Others(u32),
 }
 
+#[cfg(feature = "std")]
 pub type QuicVersions = Vec<QuicVersion>;
 
 impl QuicVersion {

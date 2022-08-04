@@ -1,3 +1,4 @@
+#![cfg(feature = "std")]
 use std::io::{Error, Read};
 
 pub trait ReadBytesToWith<With>: Read {
